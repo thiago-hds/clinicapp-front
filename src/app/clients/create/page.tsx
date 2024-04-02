@@ -14,28 +14,37 @@ import {
 	Paper,
 	Container,
 	Typography,
+	FormControl,
+	InputLabel,
+	Select,
+	MenuItem,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import axios, { Axios, AxiosError } from 'axios';
+import { LinkSharp } from '@mui/icons-material';
+import { useRouter } from 'next/navigation';
 
 interface ClienteForm {
-	nome: string;
+	name: string;
 	cpf: string;
 	rg: string;
-	dataNascimento: string;
+	dateOfBirth: string;
 	dataPrimeiroAtendimento: string;
-	telefoneFixo: string;
-	telefoneCelular: string;
+	landlinePhone: string;
+	mobilePhone: string;
 	email: string;
-	profissao: string;
-	observacao: string;
-	enderecoCep: string;
-	enderecoLogradouro: string;
-	enderecoNumero: string;
-	enderecoComplemento: string;
-	enderecoCidade: string;
-	enderecoUf: string;
+	occupation: string;
+	notes: string;
+	zipcode: string;
+	streetName: string;
+	addressNumber: string;
+	district: string;
+	addressAdditionalDetails: string;
+	city: string;
+	state: string;
+	howTheyFoundUs: string;
 }
 
 export default function Page() {
@@ -47,19 +56,36 @@ export default function Page() {
 
 	const [addressFounded, setAddressFounded] = useState<boolean>(false);
 
-	function onSubmit(data: ClienteForm) {
-		console.log(data);
+	const router = useRouter();
+
+	async function sendForm(data: ClienteForm) {
+		const instance = axios.create({
+			baseURL: 'http://localhost:8000',
+		});
+
+		try {
+			const response = await instance.post('/clients', data);
+			console.log('response', response.data);
+			router.push('/clients');
+		} catch (err) {
+			if (err instanceof AxiosError) {
+				console.error(err?.response?.data);
+			} else {
+				console.error(err);
+			}
+		}
 	}
 
 	async function handleCepBlur() {
-		const endereco = await fetchCep(getValues('enderecoCep'));
+		const endereco = await fetchCep(getValues('zipcode'));
 		if (!endereco) {
 			return;
 		}
 
-		setValue('enderecoLogradouro', endereco.logradouro);
-		setValue('enderecoCidade', endereco.localidade);
-		setValue('enderecoUf', endereco.uf);
+		setValue('streetName', endereco.logradouro);
+		setValue('city', endereco.localidade);
+		setValue('state', endereco.uf);
+		setValue('district', endereco.bairro);
 		setAddressFounded(true);
 	}
 
@@ -67,7 +93,7 @@ export default function Page() {
 		<Paper sx={{ padding: 5 }}>
 			<BasePageHeader title="Novo Cliente" />
 			<Container maxWidth="lg">
-				<form onSubmit={handleSubmit(onSubmit)} noValidate>
+				<form onSubmit={handleSubmit(sendForm)} noValidate>
 					<Grid container spacing={2}>
 						<Grid item xs={12}>
 							<Typography variant="h3" sx={{ marginTop: 2 }}>
@@ -79,9 +105,9 @@ export default function Page() {
 								fullWidth
 								label="Nome"
 								required
-								error={!!errors.nome?.message}
-								helperText={errors.nome?.message}
-								{...register('nome', {
+								error={!!errors.name?.message}
+								helperText={errors.name?.message}
+								{...register('name', {
 									required: 'Nome é obrigatório',
 								})}
 							/>
@@ -117,7 +143,7 @@ export default function Page() {
 						<Grid item xs={3}>
 							<Controller
 								control={control}
-								name="dataNascimento"
+								name="dateOfBirth"
 								render={({ field }) => {
 									return (
 										<DatePicker
@@ -156,14 +182,35 @@ export default function Page() {
 							<TextField
 								fullWidth
 								label="Profissão"
-								{...register('profissao')}
+								{...register('occupation')}
 							/>
+						</Grid>
+						<Grid item xs={12}>
+							<FormControl fullWidth>
+								<InputLabel id="como-nos-conheceu-label">
+									Como nos conheceu
+								</InputLabel>
+								<Select
+									labelId="como-nos-conheceu-label"
+									id="demo-simple-select"
+									{...register('howTheyFoundUs')}
+									label="Como nos Conheceu"
+								>
+									<MenuItem value="google">Google</MenuItem>
+									<MenuItem value="indicacao">
+										Indicação
+									</MenuItem>
+									<MenuItem value="outro">Outro</MenuItem>
+								</Select>
+							</FormControl>
 						</Grid>
 						<Grid item xs={12}>
 							<TextField
 								fullWidth
 								label="Observação"
-								{...register('observacao')}
+								{...register('notes')}
+								multiline
+								rows={5}
 							/>
 						</Grid>
 						<Grid item xs={12}>
@@ -179,7 +226,7 @@ export default function Page() {
 								InputProps={{
 									inputComponent: PhoneCustomInput as any,
 								}}
-								{...register('telefoneFixo')}
+								{...register('landlinePhone')}
 							/>
 						</Grid>
 						<Grid item xs={4}>
@@ -190,7 +237,7 @@ export default function Page() {
 								InputProps={{
 									inputComponent: PhoneCustomInput as any,
 								}}
-								{...register('telefoneCelular')}
+								{...register('mobilePhone')}
 							/>
 						</Grid>
 						<Grid item xs={4}>
@@ -212,12 +259,12 @@ export default function Page() {
 								fullWidth
 								label="CEP"
 								required
-								error={!!errors.enderecoCep?.message}
-								helperText={errors.enderecoCep?.message}
+								error={!!errors.zipcode?.message}
+								helperText={errors.zipcode?.message}
 								InputProps={{
 									inputComponent: CepCustomInput as any,
 								}}
-								{...register('enderecoCep', {
+								{...register('zipcode', {
 									required: 'CEP é obrigatório',
 									onBlur: () => {
 										handleCepBlur();
@@ -230,10 +277,10 @@ export default function Page() {
 								fullWidth
 								label="Logradouro"
 								required
-								error={!!errors.enderecoLogradouro?.message}
-								helperText={errors.enderecoLogradouro?.message}
+								error={!!errors.streetName?.message}
+								helperText={errors.streetName?.message}
 								InputLabelProps={{ shrink: addressFounded }}
-								{...register('enderecoLogradouro', {
+								{...register('streetName', {
 									required: 'Logradouro é obrigatório',
 								})}
 							/>
@@ -243,30 +290,39 @@ export default function Page() {
 								fullWidth
 								label="Número"
 								required
-								error={!!errors.enderecoNumero?.message}
-								helperText={errors.enderecoNumero?.message}
+								error={!!errors.addressNumber?.message}
+								helperText={errors.addressNumber?.message}
 								InputLabelProps={{ shrink: addressFounded }}
-								{...register('enderecoNumero', {
+								{...register('addressNumber', {
 									required: 'Número é obrigatório',
 								})}
 							/>
 						</Grid>
-						<Grid item xs={4}>
+
+						<Grid item xs={6}>
+							<TextField
+								fullWidth
+								label="Bairro"
+								{...register('district')}
+							/>
+						</Grid>
+
+						<Grid item xs={6}>
 							<TextField
 								fullWidth
 								label="Complemento"
-								{...register('enderecoComplemento')}
+								{...register('addressAdditionalDetails')}
 							/>
 						</Grid>
-						<Grid item xs={6}>
+						<Grid item xs={10}>
 							<TextField
 								fullWidth
 								label="Cidade"
 								required
-								error={!!errors.enderecoCidade?.message}
-								helperText={errors.enderecoCidade?.message}
+								error={!!errors.city?.message}
+								helperText={errors.city?.message}
 								InputLabelProps={{ shrink: addressFounded }}
-								{...register('enderecoCidade', {
+								{...register('city', {
 									required: 'Cidade é obrigatório',
 								})}
 							/>
@@ -276,10 +332,10 @@ export default function Page() {
 								fullWidth
 								label="UF"
 								required
-								error={!!errors.enderecoUf?.message}
-								helperText={errors.enderecoUf?.message}
+								error={!!errors.state?.message}
+								helperText={errors.state?.message}
 								InputLabelProps={{ shrink: addressFounded }}
-								{...register('enderecoUf', {
+								{...register('state', {
 									required: 'UF é obrigatório',
 								})}
 							/>
@@ -290,15 +346,17 @@ export default function Page() {
 								spacing={2}
 								justifyContent="center"
 							>
-								<Button color="error">Cancelar</Button>
+								<Button
+									color="error"
+									onClick={() => router.push('/clients')}
+								>
+									Cancelar
+								</Button>
 								<Button type="submit" color="success">
 									Gravar
 								</Button>
 							</Stack>
 						</Grid>
-						{/* telefone fixo, tel celular, email, data de nascimento, profisssão, observações, data do primeiro atendimento */}
-						{/* campo profissão */}
-						{/* campo "como nos conheceu" - google, indicação, outro */}
 					</Grid>
 				</form>
 			</Container>
