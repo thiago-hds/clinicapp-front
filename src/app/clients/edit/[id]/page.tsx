@@ -20,16 +20,42 @@ import {
 	MenuItem,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import axios, { Axios, AxiosError } from 'axios';
 import { LinkSharp } from '@mui/icons-material';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import NextLink from 'next/link';
 import { ClienteFormData, ClientForm } from '@/components/forms/ClientForm';
 
-export default function Page() {
+interface ClienteEditPageParams {
+	params: { id: string };
+}
+
+export default function Page({ params }: ClienteEditPageParams) {
 	const router = useRouter();
+
+	const [client, setClient] = useState<Client | null>(null);
+
+	useEffect(() => {
+		async function getData() {
+			const instance = axios.create({
+				baseURL: 'http://localhost:8000',
+			});
+
+			try {
+				const response = await instance.get(`/clients/${params.id}`);
+				setClient(response.data?.data);
+			} catch (err) {
+				if (err instanceof AxiosError) {
+					console.error(err?.response?.data);
+				} else {
+					console.error(err);
+				}
+			}
+		}
+		getData();
+	}, [params]);
 
 	async function sendForm(data: ClienteFormData) {
 		const instance = axios.create({
@@ -51,8 +77,8 @@ export default function Page() {
 
 	return (
 		<Paper sx={{ padding: 5 }}>
-			<BasePageHeader title="Novo Cliente" />
-			<ClientForm onFormSubmit={sendForm} />
+			<BasePageHeader title={`Editar Cliente ${params.id}`} />
+			<ClientForm onFormSubmit={sendForm} client={client} />
 		</Paper>
 	);
 }
