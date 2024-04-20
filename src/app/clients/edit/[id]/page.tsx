@@ -36,9 +36,11 @@ export default function Page({ params }: ClienteEditPageParams) {
 	const router = useRouter();
 
 	const [client, setClient] = useState<Client | null>(null);
+	const [isLoading, setIsLoading] = useState<boolean>(false);
 
 	useEffect(() => {
 		async function getData() {
+			setIsLoading(true);
 			const instance = axios.create({
 				baseURL: 'http://localhost:8000',
 			});
@@ -52,18 +54,24 @@ export default function Page({ params }: ClienteEditPageParams) {
 				} else {
 					console.error(err);
 				}
+			} finally {
+				setIsLoading(false);
 			}
 		}
 		getData();
 	}, [params]);
 
 	async function sendForm(data: ClienteFormData) {
+		if (!client) {
+			return;
+		}
+
 		const instance = axios.create({
 			baseURL: 'http://localhost:8000',
 		});
 
 		try {
-			const response = await instance.post('/clients', data);
+			const response = await instance.put(`/clients/${client.id}`, data);
 			console.log('response', response.data);
 			router.push('/clients/index');
 		} catch (err) {
@@ -78,7 +86,11 @@ export default function Page({ params }: ClienteEditPageParams) {
 	return (
 		<Paper sx={{ padding: 5 }}>
 			<BasePageHeader title={`Editar Cliente ${params.id}`} />
-			<ClientForm onFormSubmit={sendForm} client={client} />
+			<ClientForm
+				onFormSubmit={sendForm}
+				isLoading={isLoading}
+				client={client}
+			/>
 		</Paper>
 	);
 }

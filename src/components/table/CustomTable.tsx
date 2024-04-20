@@ -210,7 +210,7 @@ export interface CustomTableProps<T> {
 	handleChangeRowsPerPage: (rowsPerPage: number) => void;
 }
 
-export default function CustomTable<T extends TableItem>({
+export function CustomTable<T extends TableItem>({
 	headCells,
 	rows,
 	renderRow,
