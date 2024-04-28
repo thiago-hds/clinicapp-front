@@ -23,6 +23,13 @@ const theme = createTheme(
 			},
 		},
 		components: {
+			MuiPaper: {
+				styleOverrides: {
+					root: {
+						padding: '1rem',
+					},
+				},
+			},
 			MuiButton: {
 				defaultProps: {
 					variant: 'contained',

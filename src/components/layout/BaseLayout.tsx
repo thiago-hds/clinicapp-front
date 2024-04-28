@@ -88,7 +88,7 @@ const Drawer = styled(MuiDrawer)(({ theme, open }) => ({
 }));
 
 const BaseLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-	const [open, setOpen] = React.useState(true);
+	const [open, setOpen] = React.useState(false);
 	const toggleDrawer = () => {
 		setOpen(open => !open);
 	};
@@ -104,12 +104,15 @@ const BaseLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 		>
 			<Box sx={{ display: 'flex' }}>
 				<CssBaseline />
-				<AppBar position="absolute" open={open}>
-					<Toolbar
-						sx={{
-							pr: '24px', // keep right padding when drawer closed
-						}}
-					>
+				<AppBar
+					position="absolute"
+					open={open}
+					sx={{
+						padding: 0,
+						zIndex: theme => theme.zIndex.drawer + 1,
+					}}
+				>
+					<Toolbar>
 						<IconButton
 							edge="start"
 							color="inherit"
@@ -141,24 +144,15 @@ const BaseLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 					variant={isMobile ? 'temporary' : 'permanent'}
 					open={open}
 				>
-					<Toolbar
-						sx={{
-							display: 'flex',
-							alignItems: 'center',
-							justifyContent: 'flex-end',
-							px: [1],
-						}}
-					>
-						<IconButton onClick={toggleDrawer}>
-							<ChevronLeftIcon />
-						</IconButton>
-					</Toolbar>
-					<Divider />
-					<List component="nav">
-						{mainListItems}
-						<Divider sx={{ my: 1 }} />
-						{secondaryListItems}
-					</List>
+					<Toolbar />
+
+					<Box sx={{ overflowY: 'auto', overflowX: 'hidden' }}>
+						<List component="nav">
+							{mainListItems}
+							<Divider sx={{ my: 1 }} />
+							{secondaryListItems}
+						</List>
+					</Box>
 				</Drawer>
 				<Box
 					component="main"

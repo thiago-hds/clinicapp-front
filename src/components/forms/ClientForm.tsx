@@ -1,3 +1,5 @@
+'use client';
+
 import CepCustomInput from '@/components/inputs/CepCustomInput';
 import CpfCustomInput from '@/components/inputs/CpfCustomInput';
 import PhoneCustomInput from '@/components/inputs/PhoneCustomInput';
@@ -18,6 +20,7 @@ import {
 	MenuItem,
 	Backdrop,
 	CircularProgress,
+	Autocomplete,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers';
 import { useEffect, useState } from 'react';
@@ -34,7 +37,7 @@ export interface ClientFormData {
 	lastName: string;
 	cpf: string;
 	rg: string;
-	dateOfBirth: string;
+	dateOfBirth?: string;
 	dateOfFirstVisit: string;
 	landlinePhone: string;
 	mobilePhone: string;
@@ -52,13 +55,11 @@ export interface ClientFormData {
 }
 
 interface ClientFormProps {
-	onFormSubmit: (data: ClientFormData) => void;
 	isLoading?: boolean;
 	client: Client | null;
 }
 
 export function ClientForm({
-	onFormSubmit,
 	isLoading = false,
 	client = null,
 }: ClientFormProps) {
@@ -77,6 +78,13 @@ export function ClientForm({
 
 	const [addressFound, setAddressFound] = useState<boolean>(false);
 	const editMode = client != null;
+	const router = useRouter();
+
+	const howTheyFoundUsValue = getValues('howTheyFoundUs');
+	const selectedHowTheyFoundUsOption =
+		howTheyFoundUsOptions.find(
+			option => option.id == howTheyFoundUsValue
+		) ?? null;
 
 	useEffect(() => {
 		if (!client) {
@@ -110,6 +118,31 @@ export function ClientForm({
 		reset(formData);
 	}, [client, reset]);
 
+	async function sendForm(formData: ClientFormData) {
+		if (!client) {
+			return;
+		}
+
+		const instance = axios.create({
+			baseURL: 'http://localhost:8000',
+		});
+
+		try {
+			const response = await instance.put(
+				`/clients/${client.id}`,
+				formData
+			);
+			console.log('response', response.data);
+			router.push('/clients/index');
+		} catch (err) {
+			if (err instanceof AxiosError) {
+				console.error(err?.response?.data);
+			} else {
+				console.error(err);
+			}
+		}
+	}
+
 	async function handleCepBlur() {
 		const endereco = await fetchCep(getValues('zipcode'));
 		if (!endereco) {
@@ -126,14 +159,14 @@ export function ClientForm({
 
 	return (
 		<Container maxWidth="lg">
-			<form onSubmit={handleSubmit(onFormSubmit)} noValidate>
+			<form onSubmit={handleSubmit(sendForm)} noValidate>
 				<Grid container spacing={2}>
 					<Grid item xs={12}>
 						<Typography variant="h3" sx={{ marginTop: 2 }}>
 							Dados Básicos
 						</Typography>
 					</Grid>
-					<Grid item xs={6}>
+					<Grid item xs={12} sm={6}>
 						<TextField
 							fullWidth
 							label="Nome"
@@ -146,7 +179,7 @@ export function ClientForm({
 							})}
 						/>
 					</Grid>
-					<Grid item xs={6}>
+					<Grid item xs={12} sm={6}>
 						<TextField
 							fullWidth
 							label="Sobrenomeome"
@@ -159,7 +192,7 @@ export function ClientForm({
 							})}
 						/>
 					</Grid>
-					<Grid item xs={6}>
+					<Grid item xs={12} sm={6}>
 						<TextField
 							fullWidth
 							label="CPF"
@@ -181,7 +214,7 @@ export function ClientForm({
 							})}
 						/>
 					</Grid>
-					<Grid item xs={6}>
+					<Grid item xs={12} sm={6}>
 						<TextField
 							fullWidth
 							label="RG"
@@ -189,7 +222,7 @@ export function ClientForm({
 							{...register('rg')}
 						/>
 					</Grid>
-					<Grid item xs={3}>
+					<Grid item xs={12} sm={3}>
 						<Controller
 							control={control}
 							name="dateOfBirth"
@@ -213,7 +246,7 @@ export function ClientForm({
 							}}
 						/>
 					</Grid>
-					<Grid item xs={3}>
+					<Grid item xs={12} sm={3}>
 						<Controller
 							control={control}
 							name="dateOfFirstVisit"
@@ -237,7 +270,7 @@ export function ClientForm({
 							}}
 						/>
 					</Grid>
-					<Grid item xs={6}>
+					<Grid item xs={12} sm={6}>
 						<TextField
 							fullWidth
 							label="Profissão"
@@ -246,21 +279,31 @@ export function ClientForm({
 						/>
 					</Grid>
 					<Grid item xs={12}>
-						<FormControl fullWidth>
-							<InputLabel id="como-nos-conheceu-label">
-								Como nos conheceu
-							</InputLabel>
-							<Select
-								labelId="como-nos-conheceu-label"
-								id="demo-simple-select"
-								label="Como nos Conheceu"
-								{...register('howTheyFoundUs')}
-							>
-								<MenuItem value="google">Google</MenuItem>
-								<MenuItem value="indicacao">Indicação</MenuItem>
-								<MenuItem value="outro">Outro</MenuItem>
-							</Select>
-						</FormControl>
+						<Controller
+							control={control}
+							name="howTheyFoundUs"
+							render={({ field }) => {
+								return (
+									<Autocomplete
+										disablePortal
+										options={howTheyFoundUsOptions}
+										value={selectedHowTheyFoundUsOption}
+										onChange={(_, value) => {
+											field.onChange(value?.id ?? null);
+										}}
+										renderInput={params => (
+											<TextField
+												{...params}
+												InputLabelProps={{
+													shrink: editMode,
+												}}
+												label="Como nos conheceu"
+											/>
+										)}
+									/>
+								);
+							}}
+						/>
 					</Grid>
 					<Grid item xs={12}>
 						<TextField
@@ -277,7 +320,7 @@ export function ClientForm({
 							Dados de Contato
 						</Typography>
 					</Grid>
-					<Grid item xs={4}>
+					<Grid item xs={12} sm={4}>
 						<TextField
 							fullWidth
 							label="Telefone Fixo"
@@ -289,7 +332,7 @@ export function ClientForm({
 							{...register('landlinePhone')}
 						/>
 					</Grid>
-					<Grid item xs={4}>
+					<Grid item xs={12} sm={4}>
 						<TextField
 							fullWidth
 							label="Celular"
@@ -301,7 +344,7 @@ export function ClientForm({
 							{...register('mobilePhone')}
 						/>
 					</Grid>
-					<Grid item xs={4}>
+					<Grid item xs={12} sm={4}>
 						<TextField
 							fullWidth
 							label="E-mail"
@@ -316,7 +359,7 @@ export function ClientForm({
 						</Typography>
 					</Grid>
 
-					<Grid item xs={4}>
+					<Grid item xs={12} sm={4}>
 						<TextField
 							fullWidth
 							label="CEP"
@@ -335,7 +378,7 @@ export function ClientForm({
 							})}
 						/>
 					</Grid>
-					<Grid item xs={6}>
+					<Grid item xs={12} sm={6}>
 						<TextField
 							fullWidth
 							label="Logradouro"
@@ -350,7 +393,7 @@ export function ClientForm({
 							})}
 						/>
 					</Grid>
-					<Grid item xs={2}>
+					<Grid item xs={12} sm={2}>
 						<TextField
 							fullWidth
 							label="Número"
@@ -366,7 +409,7 @@ export function ClientForm({
 						/>
 					</Grid>
 
-					<Grid item xs={6}>
+					<Grid item xs={12} sm={6}>
 						<TextField
 							fullWidth
 							label="Bairro"
@@ -377,7 +420,7 @@ export function ClientForm({
 						/>
 					</Grid>
 
-					<Grid item xs={6}>
+					<Grid item xs={12} sm={6}>
 						<TextField
 							fullWidth
 							label="Complemento"
@@ -387,7 +430,7 @@ export function ClientForm({
 							{...register('addressAdditionalDetails')}
 						/>
 					</Grid>
-					<Grid item xs={10}>
+					<Grid item xs={12} sm={10}>
 						<TextField
 							fullWidth
 							label="Cidade"
@@ -402,7 +445,7 @@ export function ClientForm({
 							})}
 						/>
 					</Grid>
-					<Grid item xs={2}>
+					<Grid item xs={12} sm={2}>
 						<TextField
 							fullWidth
 							label="UF"
@@ -447,3 +490,10 @@ export function ClientForm({
 		</Container>
 	);
 }
+
+const howTheyFoundUsOptions = [
+	{ label: 'Google', id: 'google' },
+	{ label: 'Instagram', id: 'instagram' },
+	{ label: 'Indicação', id: 'indicacao' },
+	{ label: 'Outro', id: 'outro' },
+];
