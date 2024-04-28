@@ -20,6 +20,8 @@ import { mainListItems, secondaryListItems } from './listItems';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { ptBR } from '@mui/x-date-pickers/locales';
+import { useTheme } from '@mui/material/styles';
+import { useMediaQuery } from '@mui/material';
 
 const Copyright: React.FC<{ sx?: SxProps<Theme> }> = ({ sx }) => {
 	return (
@@ -54,8 +56,6 @@ const AppBar = styled(MuiAppBar, {
 		duration: theme.transitions.duration.leavingScreen,
 	}),
 	...(open && {
-		marginLeft: drawerWidth,
-		width: `calc(100% - ${drawerWidth}px)`,
 		transition: theme.transitions.create(['width', 'margin'], {
 			easing: theme.transitions.easing.sharp,
 			duration: theme.transitions.duration.enteringScreen,
@@ -63,9 +63,7 @@ const AppBar = styled(MuiAppBar, {
 	}),
 }));
 
-const Drawer = styled(MuiDrawer, {
-	shouldForwardProp: prop => prop !== 'open',
-})(({ theme, open }) => ({
+const Drawer = styled(MuiDrawer)(({ theme, open }) => ({
 	'& .MuiDrawer-paper': {
 		position: 'relative',
 		whiteSpace: 'nowrap',
@@ -92,8 +90,10 @@ const Drawer = styled(MuiDrawer, {
 const BaseLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 	const [open, setOpen] = React.useState(true);
 	const toggleDrawer = () => {
-		setOpen(!open);
+		setOpen(open => !open);
 	};
+	const theme = useTheme();
+	const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
 	return (
 		<LocalizationProvider
@@ -117,7 +117,6 @@ const BaseLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 							onClick={toggleDrawer}
 							sx={{
 								marginRight: '36px',
-								...(open && { display: 'none' }),
 							}}
 						>
 							<MenuIcon />
@@ -138,7 +137,10 @@ const BaseLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 						</IconButton>
 					</Toolbar>
 				</AppBar>
-				<Drawer variant="permanent" open={open}>
+				<Drawer
+					variant={isMobile ? 'temporary' : 'permanent'}
+					open={open}
+				>
 					<Toolbar
 						sx={{
 							display: 'flex',
