@@ -21,7 +21,10 @@ import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { ptBR } from '@mui/x-date-pickers/locales';
 import { useTheme } from '@mui/material/styles';
-import { useMediaQuery } from '@mui/material';
+import { Menu, MenuItem, useMediaQuery } from '@mui/material';
+import { AccountCircle } from '@mui/icons-material';
+import axios from 'axios';
+import { useRouter } from 'next/navigation';
 
 const Copyright: React.FC<{ sx?: SxProps<Theme> }> = ({ sx }) => {
 	return (
@@ -89,11 +92,40 @@ const Drawer = styled(MuiDrawer)(({ theme, open }) => ({
 
 const BaseLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 	const [open, setOpen] = React.useState(false);
+	const [isLoggingOut, setIsLoggingOut] = React.useState(false);
 	const toggleDrawer = () => {
 		setOpen(open => !open);
 	};
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+	const [menuAnchorEl, setMenuAnchorEl] = React.useState<null | HTMLElement>(
+		null
+	);
+
+	const router = useRouter();
+
+	const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
+		setMenuAnchorEl(event.currentTarget);
+	};
+
+	const handleCloseMenu = () => {
+		setMenuAnchorEl(null);
+	};
+	const handleLogout = async () => {
+		try {
+			setIsLoggingOut(true);
+			await axios({
+				url: '/api/logout',
+				method: 'POST',
+			});
+
+			router.push('/auth/login');
+		} catch (err) {
+			console.error(err);
+		} finally {
+			setIsLoggingOut(false);
+		}
+	};
 
 	return (
 		<LocalizationProvider
@@ -133,11 +165,42 @@ const BaseLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 						>
 							ClinicaApp
 						</Typography>
-						<IconButton color="inherit">
+
+						{/* <IconButton color="inherit">
 							<Badge badgeContent={4} color="secondary">
 								<NotificationsIcon />
 							</Badge>
+						</IconButton> */}
+
+						{/* <div> */}
+						<IconButton
+							size="large"
+							aria-label="account of current user"
+							aria-controls="menu-appbar"
+							aria-haspopup="true"
+							onClick={handleOpenMenu}
+							color="inherit"
+						>
+							<AccountCircle />
 						</IconButton>
+						<Menu
+							id="menu-appbar"
+							anchorEl={menuAnchorEl}
+							anchorOrigin={{
+								vertical: 'top',
+								horizontal: 'right',
+							}}
+							keepMounted
+							transformOrigin={{
+								vertical: 'top',
+								horizontal: 'right',
+							}}
+							open={Boolean(menuAnchorEl)}
+							onClose={handleCloseMenu}
+						>
+							<MenuItem onClick={handleLogout}>Logout</MenuItem>
+						</Menu>
+						{/* </div> */}
 					</Toolbar>
 				</AppBar>
 				<Drawer

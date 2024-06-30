@@ -7,10 +7,10 @@ interface BasePageHeaderProps {
 
 const BasePageHeader: FC<BasePageHeaderProps> = ({ title }) => {
 	return (
-		<Box>
-			<Breadcrumbs aria-label="breadcrumb">
+		<Box sx={{ marginBottom: 5 }}>
+			{/* <Breadcrumbs aria-label="breadcrumb">
 				<Link underline="hover" color="inherit" href="/">
-					MUI
+					Clientes
 				</Link>
 				<Link
 					underline="hover"
@@ -19,13 +19,10 @@ const BasePageHeader: FC<BasePageHeaderProps> = ({ title }) => {
 				>
 					Core
 				</Link>
-				<Typography color="text.primary">Breadcrumbs</Typography>
-			</Breadcrumbs>
+				<Typography color="text.primary">Listar</Typography>
+			</Breadcrumbs> */}
 			<Box>
-				<Typography
-					variant="h2"
-					sx={{ marginTop: 0.75, marginBottom: 2 }}
-				>
+				<Typography variant="h2" sx={{ marginTop: 0.75 }}>
 					{title}
 				</Typography>
 			</Box>

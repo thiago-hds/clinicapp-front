@@ -29,12 +29,17 @@ declare global {
 		additionalDetails: string;
 	}
 
-	interface Pagination {
+	interface PaginationInfo {
 		page: number;
 		take: number;
 		itemCount: number;
 		pageCount: number;
 		hasPreviousPage: boolean;
 		hasNextPage: boolean;
+	}
+
+	interface PaginationControls {
+		page: number;
+		rowsPerPage: number;
 	}
 }

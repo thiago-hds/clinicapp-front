@@ -3,7 +3,6 @@
 import CepCustomInput from '@/components/inputs/CepCustomInput';
 import CpfCustomInput from '@/components/inputs/CpfCustomInput';
 import PhoneCustomInput from '@/components/inputs/PhoneCustomInput';
-import BasePageHeader from '@/components/layout/BasePageHeader';
 import fetchCep from '@/util/fetchCep';
 import { validateCpf } from '@/util/validateDocument';
 import {
@@ -11,26 +10,22 @@ import {
 	TextField,
 	Button,
 	Stack,
-	Paper,
 	Container,
 	Typography,
-	FormControl,
-	InputLabel,
-	Select,
-	MenuItem,
 	Backdrop,
 	CircularProgress,
 	Autocomplete,
+	Box,
 } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers';
+import { DatePicker, DateValidationError } from '@mui/x-date-pickers';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import axios, { Axios, AxiosError } from 'axios';
-import { LinkSharp } from '@mui/icons-material';
+import { AxiosError } from 'axios';
 import { useRouter } from 'next/navigation';
 import NextLink from 'next/link';
-import { formatDate } from '@/util/formatter';
 import dayjs from 'dayjs';
+import { axiosInstance } from '@/util/api';
+import { getDatePickerValidationErrorMessage } from '@/util/validation/getDatePickerValidationErrorMessage';
 
 export interface ClientFormData {
 	firstName: string;
@@ -55,14 +50,14 @@ export interface ClientFormData {
 }
 
 interface ClientFormProps {
-	isLoading?: boolean;
 	client: Client | null;
+	isLoading?: boolean;
 }
 
-export function ClientForm({
+export const ClientForm: React.FC<ClientFormProps> = ({
+	client,
 	isLoading = false,
-	client = null,
-}: ClientFormProps) {
+}) => {
 	const {
 		register,
 		handleSubmit,
@@ -71,6 +66,7 @@ export function ClientForm({
 		getValues,
 		setValue,
 		reset,
+		setError,
 	} = useForm<ClientFormData>({
 		mode: 'onBlur',
 	});
@@ -78,6 +74,7 @@ export function ClientForm({
 
 	const [addressFound, setAddressFound] = useState<boolean>(false);
 	const editMode = client != null;
+	const shrink = editMode ? editMode : undefined;
 	const router = useRouter();
 
 	const howTheyFoundUsValue = getValues('howTheyFoundUs');
@@ -119,21 +116,22 @@ export function ClientForm({
 	}, [client, reset]);
 
 	async function sendForm(formData: ClientFormData) {
-		if (!client) {
+		console.log('sendForm', formData);
+		if (!formData) {
 			return;
 		}
 
-		const instance = axios.create({
-			baseURL: 'http://localhost:8000',
-		});
+		const clientData = { ...formData, email: formData.email || null };
+		console.log('clienteData', clientData);
 
 		try {
-			const response = await instance.put(
-				`/clients/${client.id}`,
-				formData
-			);
+			const response = await axiosInstance.request({
+				method: !editMode ? 'POST' : 'PUT',
+				url: !editMode ? '/clients' : `/clients/${client.id}`,
+				data: clientData,
+			});
 			console.log('response', response.data);
-			router.push('/clients/index');
+			router.push('/dashboard/clients/index');
 		} catch (err) {
 			if (err instanceof AxiosError) {
 				console.error(err?.response?.data);
@@ -159,7 +157,7 @@ export function ClientForm({
 
 	return (
 		<Container maxWidth="lg">
-			<form onSubmit={handleSubmit(sendForm)} noValidate>
+			<Box component="form" onSubmit={handleSubmit(sendForm)} noValidate>
 				<Grid container spacing={2}>
 					<Grid item xs={12}>
 						<Typography variant="h3" sx={{ marginTop: 2 }}>
@@ -172,7 +170,9 @@ export function ClientForm({
 							label="Nome"
 							required
 							error={!!errors.firstName?.message}
-							InputLabelProps={{ shrink: editMode }}
+							InputLabelProps={{
+								shrink: shrink,
+							}}
 							helperText={errors.firstName?.message}
 							{...register('firstName', {
 								required: 'Nome é obrigatório',
@@ -185,7 +185,7 @@ export function ClientForm({
 							label="Sobrenomeome"
 							required
 							error={!!errors.lastName?.message}
-							InputLabelProps={{ shrink: editMode }}
+							InputLabelProps={{ shrink: shrink }}
 							helperText={errors.lastName?.message}
 							{...register('lastName', {
 								required: 'Sobrenome é obrigatório',
@@ -200,7 +200,7 @@ export function ClientForm({
 							error={!!errors.cpf?.message}
 							helperText={errors.cpf?.message}
 							placeholder="999.999.999-99"
-							InputLabelProps={{ shrink: editMode }}
+							InputLabelProps={{ shrink: shrink }}
 							InputProps={{
 								inputComponent: CpfCustomInput as any,
 							}}
@@ -218,11 +218,11 @@ export function ClientForm({
 						<TextField
 							fullWidth
 							label="RG"
-							InputLabelProps={{ shrink: editMode }}
+							InputLabelProps={{ shrink: shrink }}
 							{...register('rg')}
 						/>
 					</Grid>
-					<Grid item xs={12} sm={3}>
+					<Grid item xs={12} sm={6} md={3}>
 						<Controller
 							control={control}
 							name="dateOfBirth"
@@ -233,6 +233,15 @@ export function ClientForm({
 										disableFuture
 										label="Data de Nascimento"
 										inputRef={field.ref}
+										slotProps={{
+											field: {
+												clearable: true,
+											},
+											textField: {
+												helperText:
+													errors.dateOfBirth?.message,
+											},
+										}}
 										value={
 											field.value
 												? dayjs(field.value)
@@ -241,12 +250,23 @@ export function ClientForm({
 										onChange={date => {
 											field.onChange(date);
 										}}
+										onError={(
+											newError: DateValidationError
+										) =>
+											setError('dateOfBirth', {
+												type: 'custom',
+												message:
+													getDatePickerValidationErrorMessage(
+														newError
+													),
+											})
+										}
 									/>
 								);
 							}}
 						/>
 					</Grid>
-					<Grid item xs={12} sm={3}>
+					<Grid item xs={12} sm={6} md={3}>
 						<Controller
 							control={control}
 							name="dateOfFirstVisit"
@@ -257,6 +277,16 @@ export function ClientForm({
 										disableFuture
 										label="Data do Primeiro Atendimento"
 										inputRef={field.ref}
+										slotProps={{
+											field: {
+												clearable: true,
+											},
+											textField: {
+												helperText:
+													errors.dateOfFirstVisit
+														?.message,
+											},
+										}}
 										value={
 											field.value
 												? dayjs(field.value)
@@ -265,16 +295,27 @@ export function ClientForm({
 										onChange={date => {
 											field.onChange(date);
 										}}
+										onError={(
+											newError: DateValidationError
+										) =>
+											setError('dateOfFirstVisit', {
+												type: 'custom',
+												message:
+													getDatePickerValidationErrorMessage(
+														newError
+													),
+											})
+										}
 									/>
 								);
 							}}
 						/>
 					</Grid>
-					<Grid item xs={12} sm={6}>
+					<Grid item xs={12} sm={12} md={6}>
 						<TextField
 							fullWidth
 							label="Profissão"
-							InputLabelProps={{ shrink: editMode }}
+							InputLabelProps={{ shrink: shrink }}
 							{...register('occupation')}
 						/>
 					</Grid>
@@ -295,7 +336,7 @@ export function ClientForm({
 											<TextField
 												{...params}
 												InputLabelProps={{
-													shrink: editMode,
+													shrink: shrink,
 												}}
 												label="Como nos conheceu"
 											/>
@@ -310,7 +351,7 @@ export function ClientForm({
 							fullWidth
 							label="Observação"
 							{...register('notes')}
-							InputLabelProps={{ shrink: editMode }}
+							InputLabelProps={{ shrink: shrink }}
 							multiline
 							rows={5}
 						/>
@@ -328,7 +369,7 @@ export function ClientForm({
 							InputProps={{
 								inputComponent: PhoneCustomInput as any,
 							}}
-							InputLabelProps={{ shrink: editMode }}
+							InputLabelProps={{ shrink: shrink }}
 							{...register('landlinePhone')}
 						/>
 					</Grid>
@@ -340,7 +381,7 @@ export function ClientForm({
 							InputProps={{
 								inputComponent: PhoneCustomInput as any,
 							}}
-							InputLabelProps={{ shrink: editMode }}
+							InputLabelProps={{ shrink: shrink }}
 							{...register('mobilePhone')}
 						/>
 					</Grid>
@@ -348,7 +389,7 @@ export function ClientForm({
 						<TextField
 							fullWidth
 							label="E-mail"
-							InputLabelProps={{ shrink: editMode }}
+							InputLabelProps={{ shrink: shrink }}
 							{...register('email')}
 						/>
 					</Grid>
@@ -369,7 +410,7 @@ export function ClientForm({
 							InputProps={{
 								inputComponent: CepCustomInput as any,
 							}}
-							InputLabelProps={{ shrink: editMode }}
+							InputLabelProps={{ shrink: shrink }}
 							{...register('zipcode', {
 								required: 'CEP é obrigatório',
 								onBlur: () => {
@@ -469,7 +510,7 @@ export function ClientForm({
 							<Button
 								color="error"
 								variant="contained"
-								href={`/clients/index`}
+								href={`/dashboard/clients/index`}
 								LinkComponent={NextLink}
 							>
 								Cancelar
@@ -480,7 +521,7 @@ export function ClientForm({
 						</Stack>
 					</Grid>
 				</Grid>
-			</form>
+			</Box>
 			<Backdrop
 				sx={{ color: '#fff', zIndex: theme => theme.zIndex.drawer + 1 }}
 				open={isLoading}
@@ -489,7 +530,7 @@ export function ClientForm({
 			</Backdrop>
 		</Container>
 	);
-}
+};
 
 const howTheyFoundUsOptions = [
 	{ label: 'Google', id: 'google' },

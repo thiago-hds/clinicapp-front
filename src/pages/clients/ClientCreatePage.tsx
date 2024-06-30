@@ -1,16 +1,10 @@
 'use client';
 
 import BasePageHeader from '@/components/layout/BasePageHeader';
-
 import { Paper } from '@mui/material';
+import { ClientForm } from './components/forms/ClientForm';
 
-import { useRouter } from 'next/navigation';
-
-import { ClientForm } from '@/components/forms/ClientForm';
-
-export default function Page() {
-	const router = useRouter();
-
+export default function ClientCreatePage() {
 	return (
 		<Paper sx={{ padding: 5 }}>
 			<BasePageHeader title="Novo Cliente" />

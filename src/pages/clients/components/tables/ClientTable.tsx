@@ -8,54 +8,39 @@ import {
 import { formatDate, formatDurationUntilNow } from '@/util/formatter';
 import NextLink from 'next/link';
 
-export function ClientTable() {
-	const [clients, setClients] = useState<Client[]>([]);
-	const [paginationData, setPaginationData] = useState<Pagination>();
-	const [isLoading, setIsLoading] = useState<boolean>(false);
-	const [page, setPage] = useState<number>(0);
-	const [rowsPerPage, setRowsPerPage] = useState<number>(10);
+interface ClientTableProps {
+	clients: Client[];
+	paginationInfo: PaginationInfo | null;
+	paginationControls: PaginationControls;
+	onPaginationControlsChange: (
+		paginationControls: Partial<PaginationControls>
+	) => void;
+}
 
-	useEffect(() => {
-		async function fetchClients() {
-			const instance = axios.create({
-				baseURL: 'http://localhost:8000',
-			});
-			try {
-				setIsLoading(true);
-				const response = await instance.get('/clients');
-				console.log('response', response.data);
-
-				setClients(response.data.data);
-				setPaginationData(response.data.meta);
-			} catch (err) {
-				if (err instanceof AxiosError) {
-					console.error(err?.response?.data);
-				} else {
-					console.error(err);
-				}
-			} finally {
-				setIsLoading(false);
-			}
-		}
-		fetchClients();
-	}, []);
-
+export const ClientTable: React.FC<ClientTableProps> = ({
+	clients,
+	paginationInfo,
+	paginationControls,
+	onPaginationControlsChange,
+}) => {
 	const handleChangePage = (newPage: number) => {
-		setPage(newPage);
+		// setPage(newPage);
+		onPaginationControlsChange({ page: newPage });
 	};
 
 	const handleChangeRowsPerPage = (rowsPerPage: number) => {
-		setRowsPerPage(rowsPerPage);
-		setPage(0);
+		onPaginationControlsChange({ page: 0, rowsPerPage: rowsPerPage });
+		// setRowsPerPage(rowsPerPage);
+		// setPage(0);
 	};
 
 	return (
 		<CustomTable
 			headCells={headCells}
 			rows={clients}
-			pagination={paginationData}
-			page={page}
-			rowsPerPage={rowsPerPage}
+			paginationInfo={paginationInfo}
+			page={paginationInfo?.page ?? 0}
+			rowsPerPage={paginationControls.rowsPerPage}
 			handleChangePage={handleChangePage}
 			handleChangeRowsPerPage={handleChangeRowsPerPage}
 			renderRow={(row, index) => {
@@ -71,16 +56,20 @@ export function ClientTable() {
 							{`${row.firstName} ${row.lastName}`}
 						</TableCell>
 						<TableCell align="right">
-							{`${formatDate(
-								row.dateOfBirth
-							)} (${formatDurationUntilNow(row.dateOfBirth)})`}
+							{row?.dateOfBirth
+								? `${formatDate(
+										new Date(row.dateOfBirth)
+								  )} (${formatDurationUntilNow(
+										new Date(row.dateOfBirth)
+								  )})`
+								: ''}
 						</TableCell>
 						<TableCell align="right">{row.mobilePhone}</TableCell>
 						<TableCell align="right">{row.landlinePhone}</TableCell>
 						<TableCell align="right">
 							<Button
 								variant="contained"
-								href={`/clients/edit/${row.id}`}
+								href={`/dashboard/clients/edit/${row.id}`}
 								LinkComponent={NextLink}
 							>
 								Editar
@@ -91,7 +80,7 @@ export function ClientTable() {
 			}}
 		/>
 	);
-}
+};
 
 const headCells: CustomTableHeadCell[] = [
 	{

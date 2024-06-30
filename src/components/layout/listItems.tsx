@@ -13,7 +13,11 @@ import AssignmentIcon from '@mui/icons-material/Assignment';
 export const mainListItems = (
 	<React.Fragment>
 		<ListItemButton>
-			<ListItemIcon>
+			<ListItemIcon
+				sx={{
+					maxWidth: '100%',
+				}}
+			>
 				<FaceIcon />
 			</ListItemIcon>
 			<ListItemText primary="Clientes" />

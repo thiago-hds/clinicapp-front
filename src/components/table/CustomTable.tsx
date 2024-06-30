@@ -203,7 +203,7 @@ export interface CustomTableProps<T> {
 	readonly headCells: CustomTableHeadCell[];
 	readonly rows: T[];
 	readonly renderRow: (row: T, index: number) => React.ReactNode;
-	readonly pagination?: Pagination;
+	readonly paginationInfo: PaginationInfo | null;
 	readonly page: number;
 	readonly rowsPerPage: number;
 	handleChangePage: (page: number) => void;
@@ -214,7 +214,7 @@ export function CustomTable<T extends TableItem>({
 	headCells,
 	rows,
 	renderRow,
-	pagination,
+	paginationInfo,
 	page,
 	rowsPerPage,
 	handleChangePage,
@@ -345,7 +345,7 @@ export function CustomTable<T extends TableItem>({
 			<TablePagination
 				rowsPerPageOptions={[5, 10, 25]}
 				component="div"
-				count={pagination?.itemCount ?? 0}
+				count={paginationInfo?.itemCount ?? 0}
 				rowsPerPage={rowsPerPage}
 				page={page}
 				onPageChange={(event: unknown, newPage: number) => {
