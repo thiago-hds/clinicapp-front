@@ -1,2 +1,2 @@
-import ClientCreatePage from '@/pages/clients/ClientCreatePage';
+import ClientCreatePage from '@/components/pages/clients/ClientCreatePage';
 export default ClientCreatePage;

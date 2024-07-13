@@ -23,7 +23,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { AxiosError } from 'axios';
 import { useRouter } from 'next/navigation';
 import NextLink from 'next/link';
-import dayjs from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
 import { axiosInstance } from '@/util/api';
 import { getDatePickerValidationErrorMessage } from '@/util/validation/getDatePickerValidationErrorMessage';
 
@@ -32,7 +32,7 @@ export interface ClientFormData {
 	lastName: string;
 	cpf: string;
 	rg: string;
-	dateOfBirth?: string;
+	dateOfBirth?: Dayjs;
 	dateOfFirstVisit: string;
 	landlinePhone: string;
 	mobilePhone: string;
@@ -93,7 +93,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({
 			lastName: client.lastName,
 			cpf: client.cpf,
 			rg: client.rg,
-			dateOfBirth: client.dateOfBirth,
+			dateOfBirth: dayjs(client.dateOfBirth),
 			dateOfFirstVisit: client.dateOfFirstVisit,
 			landlinePhone: client.landlinePhone,
 			mobilePhone: client.mobilePhone,
@@ -121,8 +121,11 @@ export const ClientForm: React.FC<ClientFormProps> = ({
 			return;
 		}
 
-		const clientData = { ...formData, email: formData.email || null };
-		console.log('clienteData', clientData);
+		const clientData = {
+			...formData,
+			dateOfBirth: formData.dateOfBirth?.format('YYYY-MM-DD') ?? null,
+			email: formData.email || null,
+		};
 
 		try {
 			const response = await axiosInstance.request({
@@ -242,11 +245,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({
 													errors.dateOfBirth?.message,
 											},
 										}}
-										value={
-											field.value
-												? dayjs(field.value)
-												: null
-										}
+										value={field.value ? field.value : null}
 										onChange={date => {
 											field.onChange(date);
 										}}

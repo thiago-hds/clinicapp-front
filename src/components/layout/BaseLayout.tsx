@@ -1,4 +1,5 @@
 'use client';
+
 import * as React from 'react';
 import { styled, SxProps, Theme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -10,12 +11,9 @@ import List from '@mui/material/List';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
-import Badge from '@mui/material/Badge';
 import Container from '@mui/material/Container';
 import Link from '@mui/material/Link';
 import MenuIcon from '@mui/icons-material/Menu';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import NotificationsIcon from '@mui/icons-material/Notifications';
 import { mainListItems, secondaryListItems } from './listItems';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -25,6 +23,7 @@ import { Menu, MenuItem, useMediaQuery } from '@mui/material';
 import { AccountCircle } from '@mui/icons-material';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
+import 'dayjs/locale/pt-br';
 
 const Copyright: React.FC<{ sx?: SxProps<Theme> }> = ({ sx }) => {
 	return (
@@ -130,6 +129,7 @@ const BaseLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 	return (
 		<LocalizationProvider
 			dateAdapter={AdapterDayjs}
+			adapterLocale="pt-br"
 			localeText={
 				ptBR.components.MuiLocalizationProvider.defaultProps.localeText
 			}
@@ -206,6 +206,7 @@ const BaseLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 				<Drawer
 					variant={isMobile ? 'temporary' : 'permanent'}
 					open={open}
+					onMouseEnter={() => setOpen(true)}
 				>
 					<Toolbar />
 

@@ -1,4 +1,5 @@
 import dayjs from 'dayjs';
+import 'dayjs/plugin/duration';
 
 export function formatDate(date?: Date): string {
 	if (!date) {
@@ -12,8 +13,7 @@ export function formatDurationUntilNow(date?: Date): string {
 		return '';
 	}
 
-	const durationPlugin = require('dayjs/plugin/duration');
-	dayjs.extend(durationPlugin);
+	dayjs.extend(require('dayjs/plugin/duration'));
 
 	const from = dayjs(date);
 	const now = dayjs();
@@ -21,9 +21,4 @@ export function formatDurationUntilNow(date?: Date): string {
 	const duration = dayjs.duration(now.diff(from));
 
 	return duration.format('YY [anos,] MM [meses]');
-
-	let formattedDuration = '';
-
-	console.log('duration', duration);
-	return 'ok';
 }
