@@ -3,7 +3,6 @@ import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter';
 import { ThemeProvider } from '@mui/material/styles';
 
 import theme from '../../themes/dashboardTheme';
-import BaseLayout from '@/components/layout/BaseLayout';
 
 export const metadata: Metadata = {
 	title: 'ClínicaApp',

@@ -33,6 +33,7 @@ async function getClient(id: number): Promise<Client | null> {
 				Cookie: `accessToken=${accessToken};`,
 			},
 		});
+		console.log('response', response.data?.data);
 		return response.data?.data as Client;
 	} catch (err) {
 		if (err instanceof AxiosError) {

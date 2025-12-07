@@ -134,75 +134,74 @@ const BaseLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 				ptBR.components.MuiLocalizationProvider.defaultProps.localeText
 			}
 		>
+			<AppBar
+				position="absolute"
+				open={open}
+				sx={{
+					padding: 0,
+					zIndex: theme => theme.zIndex.drawer + 1,
+				}}
+			>
+				<Toolbar>
+					<IconButton
+						edge="start"
+						color="inherit"
+						aria-label="open drawer"
+						onClick={toggleDrawer}
+						sx={{
+							marginRight: '36px',
+						}}
+					>
+						<MenuIcon />
+					</IconButton>
+					<Typography
+						component="h1"
+						variant="h6"
+						color="inherit"
+						noWrap
+						sx={{ flexGrow: 1 }}
+					>
+						ClinicaApp
+					</Typography>
+
+					{/* <IconButton color="inherit">
+				<Badge badgeContent={4} color="secondary">
+					<NotificationsIcon />
+				</Badge>
+			</IconButton> */}
+
+					<IconButton
+						size="large"
+						aria-label="account of current user"
+						aria-controls="menu-appbar"
+						aria-haspopup="true"
+						onClick={handleOpenMenu}
+						color="inherit"
+					>
+						<AccountCircle />
+					</IconButton>
+					<Menu
+						id="menu-appbar"
+						anchorEl={menuAnchorEl}
+						anchorOrigin={{
+							vertical: 'top',
+							horizontal: 'right',
+						}}
+						keepMounted
+						transformOrigin={{
+							vertical: 'top',
+							horizontal: 'right',
+						}}
+						open={Boolean(menuAnchorEl)}
+						onClose={handleCloseMenu}
+					>
+						<MenuItem onClick={handleLogout}>Logout</MenuItem>
+					</Menu>
+				</Toolbar>
+			</AppBar>
 			<Box sx={{ display: 'flex' }}>
 				<CssBaseline />
-				<AppBar
-					position="absolute"
-					open={open}
-					sx={{
-						padding: 0,
-						zIndex: theme => theme.zIndex.drawer + 1,
-					}}
-				>
-					<Toolbar>
-						<IconButton
-							edge="start"
-							color="inherit"
-							aria-label="open drawer"
-							onClick={toggleDrawer}
-							sx={{
-								marginRight: '36px',
-							}}
-						>
-							<MenuIcon />
-						</IconButton>
-						<Typography
-							component="h1"
-							variant="h6"
-							color="inherit"
-							noWrap
-							sx={{ flexGrow: 1 }}
-						>
-							ClinicaApp
-						</Typography>
 
-						{/* <IconButton color="inherit">
-							<Badge badgeContent={4} color="secondary">
-								<NotificationsIcon />
-							</Badge>
-						</IconButton> */}
-
-						{/* <div> */}
-						<IconButton
-							size="large"
-							aria-label="account of current user"
-							aria-controls="menu-appbar"
-							aria-haspopup="true"
-							onClick={handleOpenMenu}
-							color="inherit"
-						>
-							<AccountCircle />
-						</IconButton>
-						<Menu
-							id="menu-appbar"
-							anchorEl={menuAnchorEl}
-							anchorOrigin={{
-								vertical: 'top',
-								horizontal: 'right',
-							}}
-							keepMounted
-							transformOrigin={{
-								vertical: 'top',
-								horizontal: 'right',
-							}}
-							open={Boolean(menuAnchorEl)}
-							onClose={handleCloseMenu}
-						>
-							<MenuItem onClick={handleLogout}>Logout</MenuItem>
-						</Menu>
-						{/* </div> */}
-					</Toolbar>
-				</AppBar>
 				<Drawer
 					variant={isMobile ? 'temporary' : 'permanent'}
 					open={open}

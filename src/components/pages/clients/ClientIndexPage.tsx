@@ -1,47 +1,23 @@
 'use client';
 
-import BasePageHeader from '@/components/layout/BasePageHeader';
-import {
-	Paper,
-	Container,
-	Box,
-	TextField,
-	Button,
-	Grid,
-	Typography,
-} from '@mui/material';
-import { useRouter } from 'next/navigation';
+import { Paper, Button, Grid, Typography } from '@mui/material';
 
 import { useEffect, useState } from 'react';
-import axios, { AxiosError } from 'axios';
-import useSWR, { mutate } from 'swr';
+import useSWR from 'swr';
 import { fetcher } from '@/util/fetcher';
 import NextLink from 'next/link';
-import { axiosInstance } from '@/util/api';
 import { ClientFilterForm } from './components/forms/ClientFilterForm';
 import { ClientTable } from './components/tables/ClientTable';
 
 export default function ClientIndexPage() {
-	// const [clients, setClients] = useState<Client[]>([]);
-	// const [paginationInfo, setPaginationInfo] = useState<PaginationInfo | null>(
-	// 	null
-	// );
-	// const [isLoading, setIsLoading] = useState<boolean>(false);
-
-	const [page, setPage] = useState<number>(0);
-	const [rowsPerPage, setRowsPerPage] = useState<number>(10);
 	const [paginationControls, setPaginationControls] =
 		useState<PaginationControls>({ page: 0, rowsPerPage: 10 });
 	const [query, setQuery] = useState<string>('');
 	const [clientsParams, setClientsParams] = useState({
 		query: '',
 		page: 1,
-		rowsPerPage: 10,
+		take: 10,
 	});
-
-	// useEffect(() => {
-	// 	fetchClients();
-	// }, []);
 
 	const { data, error, isLoading } = useSWR(
 		['/clients', clientsParams],
@@ -49,35 +25,26 @@ export default function ClientIndexPage() {
 	);
 	const clients: Client[] = data?.data ?? [];
 	const paginationInfo: PaginationInfo | null = data?.meta ?? null;
+	console.log('controls', paginationControls);
 
-	// console.log('clients', clients);
-
-	// async function fetchClients() {
-	// 	try {
-	// 		setIsLoading(true);
-	// 		const response = await axiosInstance.get('/clients', {
-	// 			params: { query: query },
-	// 		});
-	// 		console.log('response', response.data);
-
-	// 		setClients(response.data.data);
-	// 		setPaginationInfo(response.data.meta);
-	// 	} catch (err) {
-	// 		if (err instanceof AxiosError) {
-	// 			console.error(err?.response?.data);
-	// 		} else {
-	// 			console.error(err);
-	// 		}
-	// 	} finally {
-	// 		setIsLoading(false);
-	// 	}
-	// }
+	useEffect(
+		function () {
+			setClientsParams(params => {
+				return {
+					...params,
+					page: paginationControls.page + 1,
+					take: paginationControls.rowsPerPage,
+				};
+			});
+		},
+		[paginationControls.page, paginationControls.rowsPerPage]
+	);
 
 	function handlePaginationControlsChange(
 		newControls: Partial<PaginationControls>
 	) {
 		setPaginationControls(controls => {
-			return { ...controls, newControls };
+			return { ...controls, ...newControls };
 		});
 	}
 
@@ -89,19 +56,6 @@ export default function ClientIndexPage() {
 				spacing={1}
 				sx={{ marginBottom: 5, padding: 1 }}
 			>
-				{/* <Breadcrumbs aria-label="breadcrumb">
-				<Link underline="hover" color="inherit" href="/">
-					Clientes
-				</Link>
-				<Link
-					underline="hover"
-					color="inherit"
-					href="/material-ui/getting-started/installation/"
-				>
-					Core
-				</Link>
-				<Typography color="text.primary">Listar</Typography>
-			</Breadcrumbs> */}
 				<Grid item xs>
 					<Typography variant="h2" sx={{ marginTop: 0.75 }}>
 						Clientes
@@ -122,8 +76,8 @@ export default function ClientIndexPage() {
 				onQueryChange={value => setQuery(value)}
 				onSearchClick={() => {
 					setClientsParams({
-						...paginationControls,
 						page: paginationControls.page + 1,
+						take: paginationControls.rowsPerPage,
 						query,
 					});
 				}}

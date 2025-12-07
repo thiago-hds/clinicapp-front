@@ -7,6 +7,7 @@ import {
 } from '@/components/table/CustomTable';
 import { formatDate, formatDurationUntilNow } from '@/util/formatter';
 import NextLink from 'next/link';
+import dayjs from 'dayjs';
 
 interface ClientTableProps {
 	clients: Client[];
@@ -24,22 +25,21 @@ export const ClientTable: React.FC<ClientTableProps> = ({
 	onPaginationControlsChange,
 }) => {
 	const handleChangePage = (newPage: number) => {
-		// setPage(newPage);
 		onPaginationControlsChange({ page: newPage });
 	};
 
 	const handleChangeRowsPerPage = (rowsPerPage: number) => {
 		onPaginationControlsChange({ page: 0, rowsPerPage: rowsPerPage });
-		// setRowsPerPage(rowsPerPage);
-		// setPage(0);
 	};
+
+	console.log('paginationControls clients', paginationControls);
 
 	return (
 		<CustomTable
 			headCells={headCells}
 			rows={clients}
 			paginationInfo={paginationInfo}
-			page={paginationInfo?.page ?? 0}
+			page={paginationInfo?.page ? paginationInfo.page - 1 : 0}
 			rowsPerPage={paginationControls.rowsPerPage}
 			handleChangePage={handleChangePage}
 			handleChangeRowsPerPage={handleChangeRowsPerPage}
@@ -57,8 +57,8 @@ export const ClientTable: React.FC<ClientTableProps> = ({
 						</TableCell>
 						<TableCell align="right">
 							{row?.dateOfBirth
-								? `${formatDate(
-										new Date(row.dateOfBirth)
+								? `${dayjs(row.dateOfBirth).format(
+										'DD/MM/YYYY'
 								  )} (${formatDurationUntilNow(
 										new Date(row.dateOfBirth)
 								  )})`

@@ -267,8 +267,12 @@ export function CustomTable<T extends TableItem>({
 	const isSelected = (id: number) => selected.indexOf(id) !== -1;
 
 	// Avoid a layout jump when reaching the last page with empty rows.
-	const emptyRows =
-		page > 0 ? Math.max(0, (1 + page) * rowsPerPage - rows.length) : 0;
+	const emptyRows = page > 0 ? Math.max(0, rowsPerPage - rows.length) : 0;
+
+	console.log('emptyRows', emptyRows);
+	console.log('page', page);
+	console.log('rowsPerPage', rowsPerPage);
+	console.log('rowsLength', rows.length);
 
 	// const visibleRows = React.useMemo(
 	// 	() =>
@@ -336,7 +340,7 @@ export function CustomTable<T extends TableItem>({
 									height: (dense ? 33 : 53) * emptyRows,
 								}}
 							>
-								<TableCell colSpan={6} />
+								<TableCell colSpan={6}></TableCell>
 							</TableRow>
 						)}
 					</TableBody>
@@ -351,6 +355,8 @@ export function CustomTable<T extends TableItem>({
 				onPageChange={(event: unknown, newPage: number) => {
 					handleChangePage(newPage);
 				}}
+				showFirstButton
+				showLastButton
 				onRowsPerPageChange={(
 					event: React.ChangeEvent<HTMLInputElement>
 				) => {
