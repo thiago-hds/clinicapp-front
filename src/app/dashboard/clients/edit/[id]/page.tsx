@@ -24,13 +24,13 @@ const ClientEditPage: FC<ClientEditPageParams> = async ({ params }) => {
 export default ClientEditPage;
 
 async function getClient(id: number): Promise<Client | null> {
-	const cookieStore = cookies();
-	const accessToken = cookieStore.get('accessToken')?.value ?? '';
-	console.log('accessToken', accessToken);
+	// const cookieStore = cookies();
+	// const accessToken = cookieStore.get('accessToken')?.value ?? '';
+	// console.log('accessToken', accessToken);
 	try {
 		const response = await axiosInstance.get(`/clients/${id}`, {
 			headers: {
-				Cookie: `accessToken=${accessToken};`,
+				// Cookie: `accessToken=${accessToken};`,
 			},
 		});
 		console.log('response', response.data?.data);

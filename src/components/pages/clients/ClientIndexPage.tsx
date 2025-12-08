@@ -23,9 +23,8 @@ export default function ClientIndexPage() {
 		['/clients', clientsParams],
 		([url, params]) => fetcher(url, params)
 	);
-	const clients: Client[] = data?.data ?? [];
+	const clients: Client[] = data?.items ?? [];
 	const paginationInfo: PaginationInfo | null = data?.meta ?? null;
-	console.log('controls', paginationControls);
 
 	useEffect(
 		function () {

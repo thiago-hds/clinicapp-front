@@ -9,21 +9,21 @@ export async function POST(req: NextRequest) {
 	console.log('email', email, 'password', password);
 
 	try {
-		const { data } = await axiosInstance.request({
+		const res = await axiosInstance.request({
 			url: '/auth/login',
 			method: 'POST',
-			headers: {
-				'Content-Type': 'application/x-www-form-urlencoded',
-			},
+			// headers: {
+			// 	'Content-Type': 'application/x-www-form-urlencoded',
+			// },
 			data: {
 				email: email,
 				password: password,
 			},
 		});
 
-		console.log('token', data.data.token);
+		console.log('token', res);
 
-		cookies().set('accessToken', data.data.token, {
+		cookies().set('accessToken', res.data.token, {
 			httpOnly: true,
 			maxAge: 24 * 60 * 60,
 		});
