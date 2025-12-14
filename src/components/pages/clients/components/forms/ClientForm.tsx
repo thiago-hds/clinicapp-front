@@ -16,6 +16,7 @@ import {
 	CircularProgress,
 	Autocomplete,
 	Box,
+	SnackbarContent,
 } from '@mui/material';
 import { DatePicker, DateValidationError } from '@mui/x-date-pickers';
 import { useEffect, useState } from 'react';
@@ -24,30 +25,11 @@ import { AxiosError } from 'axios';
 import { useRouter } from 'next/navigation';
 import NextLink from 'next/link';
 import dayjs, { Dayjs } from 'dayjs';
-import { axiosInstance } from '@/util/api';
-import { getDatePickerValidationErrorMessage } from '@/util/validation/getDatePickerValidationErrorMessage';
 
-export interface ClientFormData {
-	firstName: string;
-	lastName: string;
-	cpf: string;
-	rg: string;
-	dateOfBirth?: Dayjs;
-	dateOfFirstVisit: string;
-	landlinePhone: string;
-	mobilePhone: string;
-	email: string;
-	occupation: string;
-	notes: string;
-	zipcode: string;
-	streetName: string;
-	addressNumber: string;
-	district: string;
-	addressAdditionalDetails: string;
-	city: string;
-	state: string;
-	howTheyFoundUs: string;
-}
+import { getDatePickerValidationErrorMessage } from '@/util/validation/getDatePickerValidationErrorMessage';
+import { ClientFormData } from '../../types/types';
+import { useClientActions } from '../../hooks/useClientActions';
+import { SnackbarProvider } from '@/hooks/useSnackBar';
 
 interface ClientFormProps {
 	client: Client | null;
@@ -72,6 +54,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({
 	});
 	const { errors } = formState;
 
+	const { saveClient } = useClientActions();
+
 	const [addressFound, setAddressFound] = useState<boolean>(false);
 	const editMode = client != null;
 	const shrink = editMode ? editMode : undefined;
@@ -93,21 +77,25 @@ export const ClientForm: React.FC<ClientFormProps> = ({
 			lastName: client.lastName,
 			cpf: client.cpf,
 			rg: client.rg,
-			dateOfBirth: dayjs(client.dateOfBirth),
+			dateOfBirth: client.dateOfBirth
+				? dayjs(client.dateOfBirth)
+				: undefined,
 			dateOfFirstVisit: client.dateOfFirstVisit,
 			landlinePhone: client.landlinePhone,
 			mobilePhone: client.mobilePhone,
 			email: client.email,
 			occupation: client.occupation,
 			notes: client.notes,
-			zipcode: client.address?.zipcode,
-			streetName: client.address?.streetName,
-			addressNumber: String(client.address?.number),
-			district: client.address?.district,
-			addressAdditionalDetails: client.address?.additionalDetails,
-			city: client.address?.zipcode,
-			state: client.address?.state,
 			howTheyFoundUs: client.howTheyFoundUs,
+			address: {
+				zipcode: client.address?.zipcode,
+				streetName: client.address?.streetName,
+				number: String(client.address?.number),
+				district: client.address?.district,
+				city: client.address?.zipcode,
+				state: client.address?.state,
+				addressAdditionalDetails: client.address?.additionalDetails,
+			},
 		};
 
 		console.log('formData', formData);
@@ -116,418 +104,409 @@ export const ClientForm: React.FC<ClientFormProps> = ({
 	}, [client, reset]);
 
 	async function sendForm(formData: ClientFormData) {
-		console.log('sendForm', formData);
-		if (!formData) {
-			return;
-		}
-
-		const clientData = {
-			...formData,
-			dateOfBirth: formData.dateOfBirth?.format('YYYY-MM-DD') ?? null,
-			email: formData.email || null,
-		};
-
-		try {
-			const response = await axiosInstance.request({
-				method: !editMode ? 'POST' : 'PUT',
-				url: !editMode ? '/clients' : `/clients/${client.id}`,
-				data: clientData,
-			});
-			console.log('response', response.data);
-			router.push('/dashboard/clients/index');
-		} catch (err) {
-			if (err instanceof AxiosError) {
-				console.error(err?.response?.data);
-			} else {
-				console.error(err);
-			}
-		}
+		saveClient(formData, client?.id);
 	}
 
 	async function handleCepBlur() {
-		const endereco = await fetchCep(getValues('zipcode'));
+		const endereco = await fetchCep(getValues('address.zipcode'));
 		if (!endereco) {
 			return;
 		}
 
-		setValue('streetName', endereco.logradouro);
-		setValue('streetName', endereco.logradouro);
-		setValue('city', endereco.localidade);
-		setValue('state', endereco.uf);
-		setValue('district', endereco.bairro);
+		setValue('address.streetName', endereco.logradouro);
+		setValue('address.streetName', endereco.logradouro);
+		setValue('address.city', endereco.localidade);
+		setValue('address.state', endereco.uf);
+		setValue('address.district', endereco.bairro);
 		setAddressFound(true);
 	}
 
 	return (
-		<Container maxWidth="lg">
-			<Box component="form" onSubmit={handleSubmit(sendForm)} noValidate>
-				<Grid container spacing={2}>
-					<Grid item xs={12}>
-						<Typography variant="h3" sx={{ marginTop: 2 }}>
-							Dados Básicos
-						</Typography>
-					</Grid>
-					<Grid item xs={12} sm={6}>
-						<TextField
-							fullWidth
-							label="Nome"
-							required
-							error={!!errors.firstName?.message}
-							InputLabelProps={{
-								shrink: shrink,
-							}}
-							helperText={errors.firstName?.message}
-							{...register('firstName', {
-								required: 'Nome é obrigatório',
-							})}
-						/>
-					</Grid>
-					<Grid item xs={12} sm={6}>
-						<TextField
-							fullWidth
-							label="Sobrenomeome"
-							required
-							error={!!errors.lastName?.message}
-							InputLabelProps={{ shrink: shrink }}
-							helperText={errors.lastName?.message}
-							{...register('lastName', {
-								required: 'Sobrenome é obrigatório',
-							})}
-						/>
-					</Grid>
-					<Grid item xs={12} sm={6}>
-						<TextField
-							fullWidth
-							label="CPF"
-							required
-							error={!!errors.cpf?.message}
-							helperText={errors.cpf?.message}
-							placeholder="999.999.999-99"
-							InputLabelProps={{ shrink: shrink }}
-							InputProps={{
-								inputComponent: CpfCustomInput as any,
-							}}
-							{...register('cpf', {
-								required: 'CPF é obrigatório',
-								validate: {
-									valid: v =>
-										validateCpf(v) ||
-										'O CPF inserido é inválido',
-								},
-							})}
-						/>
-					</Grid>
-					<Grid item xs={12} sm={6}>
-						<TextField
-							fullWidth
-							label="RG"
-							InputLabelProps={{ shrink: shrink }}
-							{...register('rg')}
-						/>
-					</Grid>
-					<Grid item xs={12} sm={6} md={3}>
-						<Controller
-							control={control}
-							name="dateOfBirth"
-							render={({ field }) => {
-								return (
-									<DatePicker
-										sx={{ width: '100%' }}
-										disableFuture
-										label="Data de Nascimento"
-										inputRef={field.ref}
-										slotProps={{
-											field: {
-												clearable: true,
-											},
-											textField: {
-												helperText:
-													errors.dateOfBirth?.message,
-											},
-										}}
-										value={field.value ? field.value : null}
-										onChange={date => {
-											field.onChange(date);
-										}}
-										onError={(
-											newError: DateValidationError
-										) =>
-											setError('dateOfBirth', {
-												type: 'custom',
-												message:
-													getDatePickerValidationErrorMessage(
-														newError
-													),
-											})
-										}
-									/>
-								);
-							}}
-						/>
-					</Grid>
-					<Grid item xs={12} sm={6} md={3}>
-						<Controller
-							control={control}
-							name="dateOfFirstVisit"
-							render={({ field }) => {
-								return (
-									<DatePicker
-										sx={{ width: '100%' }}
-										disableFuture
-										label="Data do Primeiro Atendimento"
-										inputRef={field.ref}
-										slotProps={{
-											field: {
-												clearable: true,
-											},
-											textField: {
-												helperText:
-													errors.dateOfFirstVisit
-														?.message,
-											},
-										}}
-										value={
-											field.value
-												? dayjs(field.value)
-												: null
-										}
-										onChange={date => {
-											field.onChange(date);
-										}}
-										onError={(
-											newError: DateValidationError
-										) =>
-											setError('dateOfFirstVisit', {
-												type: 'custom',
-												message:
-													getDatePickerValidationErrorMessage(
-														newError
-													),
-											})
-										}
-									/>
-								);
-							}}
-						/>
-					</Grid>
-					<Grid item xs={12} sm={12} md={6}>
-						<TextField
-							fullWidth
-							label="Profissão"
-							InputLabelProps={{ shrink: shrink }}
-							{...register('occupation')}
-						/>
-					</Grid>
-					<Grid item xs={12}>
-						<Controller
-							control={control}
-							name="howTheyFoundUs"
-							render={({ field }) => {
-								return (
-									<Autocomplete
-										disablePortal
-										options={howTheyFoundUsOptions}
-										value={selectedHowTheyFoundUsOption}
-										onChange={(_, value) => {
-											field.onChange(value?.id ?? null);
-										}}
-										renderInput={params => (
-											<TextField
-												{...params}
-												InputLabelProps={{
-													shrink: shrink,
-												}}
-												label="Como nos conheceu"
-											/>
-										)}
-									/>
-								);
-							}}
-						/>
-					</Grid>
-					<Grid item xs={12}>
-						<TextField
-							fullWidth
-							label="Observação"
-							{...register('notes')}
-							InputLabelProps={{ shrink: shrink }}
-							multiline
-							rows={5}
-						/>
-					</Grid>
-					<Grid item xs={12}>
-						<Typography variant="h3" sx={{ marginTop: 2 }}>
-							Dados de Contato
-						</Typography>
-					</Grid>
-					<Grid item xs={12} sm={4}>
-						<TextField
-							fullWidth
-							label="Telefone Fixo"
-							placeholder="(99) 9999-99999"
-							InputProps={{
-								inputComponent: PhoneCustomInput as any,
-							}}
-							InputLabelProps={{ shrink: shrink }}
-							{...register('landlinePhone')}
-						/>
-					</Grid>
-					<Grid item xs={12} sm={4}>
-						<TextField
-							fullWidth
-							label="Celular"
-							placeholder="(99) 9999-99999"
-							InputProps={{
-								inputComponent: PhoneCustomInput as any,
-							}}
-							InputLabelProps={{ shrink: shrink }}
-							{...register('mobilePhone')}
-						/>
-					</Grid>
-					<Grid item xs={12} sm={4}>
-						<TextField
-							fullWidth
-							label="E-mail"
-							InputLabelProps={{ shrink: shrink }}
-							{...register('email')}
-						/>
-					</Grid>
+		<SnackbarProvider>
+			<Container maxWidth="lg">
+				<Box
+					component="form"
+					onSubmit={handleSubmit(sendForm)}
+					noValidate
+				>
+					<Grid container spacing={2}>
+						<Grid item xs={12}>
+							<Typography variant="h3" sx={{ marginTop: 2 }}>
+								Dados Básicos
+							</Typography>
+						</Grid>
+						<Grid item xs={12} sm={6}>
+							<TextField
+								fullWidth
+								label="Nome"
+								required
+								error={!!errors.firstName?.message}
+								InputLabelProps={{
+									shrink: shrink,
+								}}
+								helperText={errors.firstName?.message}
+								{...register('firstName', {
+									required: 'Nome é obrigatório',
+								})}
+							/>
+						</Grid>
+						<Grid item xs={12} sm={6}>
+							<TextField
+								fullWidth
+								label="Sobrenomeome"
+								required
+								error={!!errors.lastName?.message}
+								InputLabelProps={{ shrink: shrink }}
+								helperText={errors.lastName?.message}
+								{...register('lastName', {
+									required: 'Sobrenome é obrigatório',
+								})}
+							/>
+						</Grid>
+						<Grid item xs={12} sm={6}>
+							<TextField
+								fullWidth
+								label="CPF"
+								required
+								error={!!errors.cpf?.message}
+								helperText={errors.cpf?.message}
+								placeholder="999.999.999-99"
+								InputLabelProps={{ shrink: shrink }}
+								InputProps={{
+									inputComponent: CpfCustomInput as any,
+								}}
+								{...register('cpf', {
+									required: 'CPF é obrigatório',
+									validate: {
+										valid: v =>
+											validateCpf(v) ||
+											'O CPF inserido é inválido',
+									},
+								})}
+							/>
+						</Grid>
+						<Grid item xs={12} sm={6}>
+							<TextField
+								fullWidth
+								label="RG"
+								InputLabelProps={{ shrink: shrink }}
+								{...register('rg')}
+							/>
+						</Grid>
+						<Grid item xs={12} sm={6} md={3}>
+							<Controller
+								control={control}
+								name="dateOfBirth"
+								render={({ field }) => {
+									return (
+										<DatePicker
+											sx={{ width: '100%' }}
+											disableFuture
+											label="Data de Nascimento"
+											inputRef={field.ref}
+											slotProps={{
+												field: {
+													clearable: true,
+												},
+												textField: {
+													helperText:
+														errors.dateOfBirth
+															?.message,
+												},
+											}}
+											value={
+												field.value ? field.value : null
+											}
+											onChange={date => {
+												field.onChange(date);
+											}}
+											onError={(
+												newError: DateValidationError
+											) =>
+												setError('dateOfBirth', {
+													type: 'custom',
+													message:
+														getDatePickerValidationErrorMessage(
+															newError
+														),
+												})
+											}
+										/>
+									);
+								}}
+							/>
+						</Grid>
+						<Grid item xs={12} sm={6} md={3}>
+							<Controller
+								control={control}
+								name="dateOfFirstVisit"
+								render={({ field }) => {
+									return (
+										<DatePicker
+											sx={{ width: '100%' }}
+											disableFuture
+											label="Data do Primeiro Atendimento"
+											inputRef={field.ref}
+											slotProps={{
+												field: {
+													clearable: true,
+												},
+												textField: {
+													helperText:
+														errors.dateOfFirstVisit
+															?.message,
+												},
+											}}
+											value={
+												field.value
+													? dayjs(field.value)
+													: null
+											}
+											onChange={date => {
+												field.onChange(date);
+											}}
+											onError={(
+												newError: DateValidationError
+											) =>
+												setError('dateOfFirstVisit', {
+													type: 'custom',
+													message:
+														getDatePickerValidationErrorMessage(
+															newError
+														),
+												})
+											}
+										/>
+									);
+								}}
+							/>
+						</Grid>
+						<Grid item xs={12} sm={12} md={6}>
+							<TextField
+								fullWidth
+								label="Profissão"
+								InputLabelProps={{ shrink: shrink }}
+								{...register('occupation')}
+							/>
+						</Grid>
+						<Grid item xs={12}>
+							<Controller
+								control={control}
+								name="howTheyFoundUs"
+								render={({ field }) => {
+									return (
+										<Autocomplete
+											disablePortal
+											options={howTheyFoundUsOptions}
+											value={selectedHowTheyFoundUsOption}
+											onChange={(_, value) => {
+												field.onChange(
+													value?.id ?? null
+												);
+											}}
+											renderInput={params => (
+												<TextField
+													{...params}
+													InputLabelProps={{
+														shrink: shrink,
+													}}
+													label="Como nos conheceu"
+												/>
+											)}
+										/>
+									);
+								}}
+							/>
+						</Grid>
+						<Grid item xs={12}>
+							<TextField
+								fullWidth
+								label="Observação"
+								{...register('notes')}
+								InputLabelProps={{ shrink: shrink }}
+								multiline
+								rows={5}
+							/>
+						</Grid>
+						<Grid item xs={12}>
+							<Typography variant="h3" sx={{ marginTop: 2 }}>
+								Dados de Contato
+							</Typography>
+						</Grid>
+						<Grid item xs={12} sm={4}>
+							<TextField
+								fullWidth
+								label="Telefone Fixo"
+								placeholder="(99) 9999-99999"
+								InputProps={{
+									inputComponent: PhoneCustomInput as any,
+								}}
+								InputLabelProps={{ shrink: shrink }}
+								{...register('landlinePhone')}
+							/>
+						</Grid>
+						<Grid item xs={12} sm={4}>
+							<TextField
+								fullWidth
+								label="Celular"
+								placeholder="(99) 9999-99999"
+								InputProps={{
+									inputComponent: PhoneCustomInput as any,
+								}}
+								InputLabelProps={{ shrink: shrink }}
+								{...register('mobilePhone')}
+							/>
+						</Grid>
+						<Grid item xs={12} sm={4}>
+							<TextField
+								fullWidth
+								label="E-mail"
+								InputLabelProps={{ shrink: shrink }}
+								{...register('email')}
+							/>
+						</Grid>
 
-					<Grid item xs={12}>
-						<Typography variant="h3" sx={{ marginTop: 2 }}>
-							Dados de Endereço
-						</Typography>
-					</Grid>
+						<Grid item xs={12}>
+							<Typography variant="h3" sx={{ marginTop: 2 }}>
+								Dados de Endereço
+							</Typography>
+						</Grid>
 
-					<Grid item xs={12} sm={4}>
-						<TextField
-							fullWidth
-							label="CEP"
-							required
-							error={!!errors.zipcode?.message}
-							helperText={errors.zipcode?.message}
-							InputProps={{
-								inputComponent: CepCustomInput as any,
-							}}
-							InputLabelProps={{ shrink: shrink }}
-							{...register('zipcode', {
-								required: 'CEP é obrigatório',
-								onBlur: () => {
-									handleCepBlur();
-								},
-							})}
-						/>
-					</Grid>
-					<Grid item xs={12} sm={6}>
-						<TextField
-							fullWidth
-							label="Logradouro"
-							required
-							error={!!errors.streetName?.message}
-							helperText={errors.streetName?.message}
-							InputLabelProps={{
-								shrink: addressFound || editMode,
-							}}
-							{...register('streetName', {
-								required: 'Logradouro é obrigatório',
-							})}
-						/>
-					</Grid>
-					<Grid item xs={12} sm={2}>
-						<TextField
-							fullWidth
-							label="Número"
-							required
-							error={!!errors.addressNumber?.message}
-							helperText={errors.addressNumber?.message}
-							InputLabelProps={{
-								shrink: addressFound || editMode,
-							}}
-							{...register('addressNumber', {
-								required: 'Número é obrigatório',
-							})}
-						/>
-					</Grid>
+						<Grid item xs={12} sm={4}>
+							<TextField
+								fullWidth
+								label="CEP"
+								required
+								error={!!errors.address?.zipcode?.message}
+								helperText={errors.address?.zipcode?.message}
+								InputProps={{
+									inputComponent: CepCustomInput as any,
+								}}
+								InputLabelProps={{ shrink: shrink }}
+								{...register('address.zipcode', {
+									required: 'CEP é obrigatório',
+									onBlur: () => {
+										handleCepBlur();
+									},
+								})}
+							/>
+						</Grid>
+						<Grid item xs={12} sm={6}>
+							<TextField
+								fullWidth
+								label="Logradouro"
+								required
+								error={!!errors.address?.streetName?.message}
+								helperText={errors.address?.streetName?.message}
+								InputLabelProps={{
+									shrink: addressFound || editMode,
+								}}
+								{...register('address.streetName', {
+									required: 'Logradouro é obrigatório',
+								})}
+							/>
+						</Grid>
+						<Grid item xs={12} sm={2}>
+							<TextField
+								fullWidth
+								label="Número"
+								required
+								error={!!errors.address?.number?.message}
+								helperText={errors.address?.number?.message}
+								InputLabelProps={{
+									shrink: addressFound || editMode,
+								}}
+								{...register('address.number', {
+									required: 'Número é obrigatório',
+								})}
+							/>
+						</Grid>
 
-					<Grid item xs={12} sm={6}>
-						<TextField
-							fullWidth
-							label="Bairro"
-							InputLabelProps={{
-								shrink: addressFound || editMode,
-							}}
-							{...register('district')}
-						/>
-					</Grid>
+						<Grid item xs={12} sm={6}>
+							<TextField
+								fullWidth
+								label="Bairro"
+								InputLabelProps={{
+									shrink: addressFound || editMode,
+								}}
+								{...register('address.district')}
+							/>
+						</Grid>
 
-					<Grid item xs={12} sm={6}>
-						<TextField
-							fullWidth
-							label="Complemento"
-							InputLabelProps={{
-								shrink: addressFound || editMode,
-							}}
-							{...register('addressAdditionalDetails')}
-						/>
-					</Grid>
-					<Grid item xs={12} sm={10}>
-						<TextField
-							fullWidth
-							label="Cidade"
-							required
-							error={!!errors.city?.message}
-							helperText={errors.city?.message}
-							InputLabelProps={{
-								shrink: addressFound || editMode,
-							}}
-							{...register('city', {
-								required: 'Cidade é obrigatório',
-							})}
-						/>
-					</Grid>
-					<Grid item xs={12} sm={2}>
-						<TextField
-							fullWidth
-							label="UF"
-							required
-							error={!!errors.state?.message}
-							helperText={errors.state?.message}
-							InputLabelProps={{
-								shrink: addressFound || editMode,
-							}}
-							{...register('state', {
-								required: 'UF é obrigatório',
-							})}
-						/>
-					</Grid>
-					<Grid item xs={12}>
-						<Stack
-							direction="row"
-							spacing={2}
-							justifyContent="center"
-						>
-							<Button
-								color="error"
-								variant="contained"
-								href={`/dashboard/clients/index`}
-								LinkComponent={NextLink}
+						<Grid item xs={12} sm={6}>
+							<TextField
+								fullWidth
+								label="Complemento"
+								InputLabelProps={{
+									shrink: addressFound || editMode,
+								}}
+								{...register(
+									'address.addressAdditionalDetails'
+								)}
+							/>
+						</Grid>
+						<Grid item xs={12} sm={10}>
+							<TextField
+								fullWidth
+								label="Cidade"
+								required
+								error={!!errors.address?.city?.message}
+								helperText={errors.address?.city?.message}
+								InputLabelProps={{
+									shrink: addressFound || editMode,
+								}}
+								{...register('address.city', {
+									required: 'Cidade é obrigatório',
+								})}
+							/>
+						</Grid>
+						<Grid item xs={12} sm={2}>
+							<TextField
+								fullWidth
+								label="UF"
+								required
+								error={!!errors.address?.state?.message}
+								helperText={errors.address?.state?.message}
+								InputLabelProps={{
+									shrink: addressFound || editMode,
+								}}
+								{...register('address.state', {
+									required: 'UF é obrigatório',
+								})}
+							/>
+						</Grid>
+						<Grid item xs={12}>
+							<Stack
+								direction="row"
+								spacing={2}
+								justifyContent="center"
 							>
-								Cancelar
-							</Button>
-							<Button type="submit" color="success">
-								Gravar
-							</Button>
-						</Stack>
+								<Button
+									color="error"
+									variant="contained"
+									href={`/dashboard/clients/index`}
+									LinkComponent={NextLink}
+								>
+									Cancelar
+								</Button>
+								<Button type="submit" color="success">
+									Gravar
+								</Button>
+							</Stack>
+						</Grid>
 					</Grid>
-				</Grid>
-			</Box>
-			<Backdrop
-				sx={{ color: '#fff', zIndex: theme => theme.zIndex.drawer + 1 }}
-				open={isLoading}
-			>
-				<CircularProgress color="inherit" />
-			</Backdrop>
-		</Container>
+				</Box>
+				<Backdrop
+					sx={{
+						color: '#fff',
+						zIndex: theme => theme.zIndex.drawer + 1,
+					}}
+					open={isLoading}
+				>
+					<CircularProgress color="inherit" />
+				</Backdrop>
+			</Container>
+		</SnackbarProvider>
 	);
 };
 

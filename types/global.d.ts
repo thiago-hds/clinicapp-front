@@ -16,6 +16,7 @@ declare global {
 		mobilePhone: string;
 		howTheyFoundUs: string;
 		address: Address;
+		createdAt: string;
 	}
 
 	interface Address {
@@ -30,10 +31,10 @@ declare global {
 	}
 
 	interface PaginationInfo {
+		total: number;
 		page: number;
-		take: number;
-		itemCount: number;
-		pageCount: number;
+		limit: number;
+		totalPages: number;
 		hasPreviousPage: boolean;
 		hasNextPage: boolean;
 	}
@@ -42,4 +43,11 @@ declare global {
 		page: number;
 		rowsPerPage: number;
 	}
+
+	interface SortControls {
+		orderBy: string;
+		order: Order;
+	}
+
+	type Order = 'asc' | 'desc';
 }

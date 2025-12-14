@@ -10,7 +10,8 @@ interface ClientEditPageParams {
 	params: { id: number };
 }
 
-const ClientEditPage: FC<ClientEditPageParams> = async ({ params }) => {
+const ClientEditPage: FC<ClientEditPageParams> = async props => {
+	const params = await props.params;
 	const client = await getClient(params.id);
 
 	return (
@@ -33,8 +34,8 @@ async function getClient(id: number): Promise<Client | null> {
 				// Cookie: `accessToken=${accessToken};`,
 			},
 		});
-		console.log('response', response.data?.data);
-		return response.data?.data as Client;
+
+		return response?.data as Client;
 	} catch (err) {
 		if (err instanceof AxiosError) {
 			console.error(err?.response?.data);

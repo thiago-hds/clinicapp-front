@@ -9,22 +9,37 @@ import NextLink from 'next/link';
 import { ClientFilterForm } from './components/forms/ClientFilterForm';
 import { ClientTable } from './components/tables/ClientTable';
 
-export default function ClientIndexPage() {
+interface ClientIndexPageProps {
+	fallbackData: Client[];
+	initialParams: {
+		page: number;
+		take: number;
+		query: string;
+		orderBy: string;
+		order: Order;
+	};
+}
+
+export default function ClientIndexPage({
+	fallbackData,
+	initialParams,
+}: ClientIndexPageProps) {
 	const [paginationControls, setPaginationControls] =
 		useState<PaginationControls>({ page: 0, rowsPerPage: 10 });
 	const [query, setQuery] = useState<string>('');
-	const [clientsParams, setClientsParams] = useState({
-		query: '',
-		page: 1,
-		take: 10,
-	});
 
-	const { data, error, isLoading } = useSWR(
+	const [clientsParams, setClientsParams] = useState(initialParams);
+
+	const { data, error, isLoading, mutate } = useSWR(
 		['/clients', clientsParams],
-		([url, params]) => fetcher(url, params)
+		([url, params]) => fetcher(url, params),
+		{
+			fallbackData,
+			revalidateOnMount: false,
+		}
 	);
 	const clients: Client[] = data?.items ?? [];
-	const paginationInfo: PaginationInfo | null = data?.meta ?? null;
+	const paginationInfo: PaginationInfo | null = data?.pagination ?? null;
 
 	useEffect(
 		function () {
@@ -45,6 +60,21 @@ export default function ClientIndexPage() {
 		setPaginationControls(controls => {
 			return { ...controls, ...newControls };
 		});
+	}
+
+	function handleSortChange(orderBy: string, order: Order) {
+		console.log('!!! handleSortchange', orderBy, order);
+
+		setClientsParams(params => ({
+			...params,
+			orderBy,
+			order,
+			page: 1,
+		}));
+	}
+
+	function handleUserDeleted() {
+		mutate();
 	}
 
 	return (
@@ -75,6 +105,7 @@ export default function ClientIndexPage() {
 				onQueryChange={value => setQuery(value)}
 				onSearchClick={() => {
 					setClientsParams({
+						...clientsParams,
 						page: paginationControls.page + 1,
 						take: paginationControls.rowsPerPage,
 						query,
@@ -86,6 +117,12 @@ export default function ClientIndexPage() {
 				paginationInfo={paginationInfo}
 				paginationControls={paginationControls}
 				onPaginationControlsChange={handlePaginationControlsChange}
+				sortControls={{
+					orderBy: clientsParams.orderBy,
+					order: clientsParams.order,
+				}}
+				onSortChange={handleSortChange}
+				onUserDeleted={handleUserDeleted}
 			/>
 		</Paper>
 	);

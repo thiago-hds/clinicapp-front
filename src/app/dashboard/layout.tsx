@@ -6,6 +6,7 @@ import { Roboto } from 'next/font/google';
 import theme from '../../themes/dashboardTheme';
 import BaseLayout from '@/components/layout/BaseLayout';
 import { CssBaseline } from '@mui/material';
+import { SnackbarProvider } from '@/hooks/useSnackBar';
 
 export const metadata: Metadata = {
 	title: 'ClínicaApp',
@@ -28,10 +29,12 @@ export default function RootLayout({
 		<html lang="pt-BR" className={roboto.variable}>
 			<body>
 				<AppRouterCacheProvider>
-					<ThemeProvider theme={theme}>
-						<CssBaseline />
-						<BaseLayout> {children}</BaseLayout>
-					</ThemeProvider>
+					<SnackbarProvider>
+						<ThemeProvider theme={theme}>
+							<CssBaseline />
+							<BaseLayout> {children}</BaseLayout>
+						</ThemeProvider>
+					</SnackbarProvider>
 				</AppRouterCacheProvider>
 			</body>
 		</html>

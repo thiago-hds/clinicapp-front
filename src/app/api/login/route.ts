@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
 		console.log('token', res);
 
-		cookies().set('accessToken', res.data.token, {
+		(await cookies()).set('accessToken', res.data.token, {
 			httpOnly: true,
 			maxAge: 24 * 60 * 60,
 		});

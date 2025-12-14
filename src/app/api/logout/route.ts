@@ -4,6 +4,6 @@ import { redirect } from 'next/navigation';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
-	cookies().set('accessToken', '', { maxAge: 0 });
+	(await cookies()).set('accessToken', '', { maxAge: 0 });
 	return NextResponse.json({ ok: true });
 }

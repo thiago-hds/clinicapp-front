@@ -1,13 +1,22 @@
-import { TableCell, Button } from '@mui/material';
-import { useEffect, useState } from 'react';
-import axios, { AxiosError } from 'axios';
+import {
+	TableCell,
+	Button,
+	Stack,
+	Dialog,
+	DialogTitle,
+	DialogContent,
+	DialogContentText,
+	DialogActions,
+} from '@mui/material';
+import { useState } from 'react';
 import {
 	CustomTable,
 	CustomTableHeadCell,
 } from '@/components/table/CustomTable';
-import { formatDate, formatDurationUntilNow } from '@/util/formatter';
+import { formatDurationUntilNow } from '@/util/formatter';
 import NextLink from 'next/link';
 import dayjs from 'dayjs';
+import { useClientActions } from '../../hooks/useClientActions';
 
 interface ClientTableProps {
 	clients: Client[];
@@ -16,6 +25,9 @@ interface ClientTableProps {
 	onPaginationControlsChange: (
 		paginationControls: Partial<PaginationControls>
 	) => void;
+	sortControls: SortControls;
+	onSortChange: (property: string, order: Order) => void;
+	onUserDeleted: () => void;
 }
 
 export const ClientTable: React.FC<ClientTableProps> = ({
@@ -23,7 +35,17 @@ export const ClientTable: React.FC<ClientTableProps> = ({
 	paginationInfo,
 	paginationControls,
 	onPaginationControlsChange,
+	sortControls,
+	onSortChange,
+	onUserDeleted,
 }) => {
+	const { deleteClient } = useClientActions();
+	const [isDeleteConfirmDialogOpen, setIsDeleteConfirmDialogOpen] =
+		useState(false);
+	const [selectedClientId, setSelectedClientId] = useState<number | null>(
+		null
+	);
+
 	const handleChangePage = (newPage: number) => {
 		onPaginationControlsChange({ page: newPage });
 	};
@@ -32,85 +54,134 @@ export const ClientTable: React.FC<ClientTableProps> = ({
 		onPaginationControlsChange({ page: 0, rowsPerPage: rowsPerPage });
 	};
 
-	console.log('paginationControls clients', paginationControls);
+	const handleDeleteClientClick = (id: number) => {
+		setSelectedClientId(id);
+		setIsDeleteConfirmDialogOpen(true);
+	};
+
+	const handleDeleteConfirmDialogClose = () => {
+		setIsDeleteConfirmDialogOpen(false);
+	};
+
+	const handleDeleteClientConfirm = async () => {
+		if (!selectedClientId) return;
+		await deleteClient(selectedClientId);
+		setSelectedClientId(null);
+		setIsDeleteConfirmDialogOpen(false);
+		onUserDeleted();
+	};
+
+	const headCells: CustomTableHeadCell<Client>[] = [
+		{
+			id: 'createdAt',
+			numeric: false,
+			disablePadding: true,
+			label: 'Cadastrado Em',
+			renderCell: (row: Client) =>
+				dayjs(row.createdAt).format('DD/MM/YYYY HH:mm'),
+		},
+		{
+			id: 'firstName',
+			numeric: false,
+			disablePadding: true,
+			label: 'Nome',
+			renderCell: (row: Client) => `${row.firstName} ${row.lastName}`,
+		},
+		{
+			id: 'cpf',
+			numeric: false,
+			disablePadding: false,
+			label: 'CPF',
+		},
+		{
+			id: 'dateOfBirth',
+			numeric: true,
+			disablePadding: false,
+			label: 'Data de Nascimento',
+			renderCell: (row: Client) =>
+				row?.dateOfBirth
+					? `${dayjs(row.dateOfBirth).format(
+							'DD/MM/YYYY'
+					  )} (${formatDurationUntilNow(new Date(row.dateOfBirth))})`
+					: '',
+		},
+		{
+			id: 'mobilePhone',
+			numeric: true,
+			disablePadding: false,
+			label: 'Telefone Celular',
+			disableSort: true,
+		},
+		{
+			id: 'landlinePhone',
+			numeric: true,
+			disablePadding: false,
+			label: 'Telefone Fixo',
+			disableSort: true,
+		},
+		{
+			id: 'actions',
+			numeric: false,
+			disablePadding: false,
+			label: '',
+			renderCell: (row: Client) => (
+				<Stack direction="row" spacing={1}>
+					<Button
+						href={`/dashboard/clients/edit/${row.id}`}
+						LinkComponent={NextLink}
+					>
+						Editar
+					</Button>
+					<Button
+						color="error"
+						onClick={() => handleDeleteClientClick(row.id)}
+					>
+						Excluir
+					</Button>
+				</Stack>
+			),
+		},
+	];
 
 	return (
-		<CustomTable
-			headCells={headCells}
-			rows={clients}
-			paginationInfo={paginationInfo}
-			page={paginationInfo?.page ? paginationInfo.page - 1 : 0}
-			rowsPerPage={paginationControls.rowsPerPage}
-			handleChangePage={handleChangePage}
-			handleChangeRowsPerPage={handleChangeRowsPerPage}
-			renderRow={(row, index) => {
-				const labelId = `enhanced-table-checkbox-${index}`;
-				return (
-					<>
-						<TableCell
-							component="th"
-							id={labelId}
-							scope="row"
-							padding="none"
-						>
-							{`${row.firstName} ${row.lastName}`}
-						</TableCell>
-						<TableCell align="right">
-							{row?.dateOfBirth
-								? `${dayjs(row.dateOfBirth).format(
-										'DD/MM/YYYY'
-								  )} (${formatDurationUntilNow(
-										new Date(row.dateOfBirth)
-								  )})`
-								: ''}
-						</TableCell>
-						<TableCell align="right">{row.mobilePhone}</TableCell>
-						<TableCell align="right">{row.landlinePhone}</TableCell>
-						<TableCell align="right">
-							<Button
-								variant="contained"
-								href={`/dashboard/clients/edit/${row.id}`}
-								LinkComponent={NextLink}
-							>
-								Editar
-							</Button>
-						</TableCell>
-					</>
-				);
-			}}
-		/>
+		<>
+			<CustomTable
+				headCells={headCells}
+				rows={clients}
+				paginationInfo={paginationInfo}
+				rowsPerPage={paginationControls.rowsPerPage}
+				handleChangePage={handleChangePage}
+				handleChangeRowsPerPage={handleChangeRowsPerPage}
+				onSortChange={onSortChange}
+				order={sortControls.order}
+				orderBy={sortControls.orderBy}
+			/>
+			<Dialog
+				open={isDeleteConfirmDialogOpen}
+				onClose={handleDeleteConfirmDialogClose}
+				aria-labelledby="alert-dialog-title"
+				aria-describedby="alert-dialog-description"
+			>
+				<DialogTitle>{'Excluir cliente'}</DialogTitle>
+				<DialogContent>
+					<DialogContentText>
+						Tem certeza que deseja excluir o cliente? Esta ação é
+						irreversível
+					</DialogContentText>
+				</DialogContent>
+				<DialogActions>
+					<Button onClick={handleDeleteConfirmDialogClose}>
+						Cancelar
+					</Button>
+					<Button
+						color="error"
+						onClick={handleDeleteClientConfirm}
+						autoFocus
+					>
+						Confirmar Exclusão
+					</Button>
+				</DialogActions>
+			</Dialog>
+		</>
 	);
 };
-
-const headCells: CustomTableHeadCell[] = [
-	{
-		id: 'name',
-		numeric: false,
-		disablePadding: true,
-		label: 'Nome',
-	},
-	{
-		id: 'dateOfBirth',
-		numeric: true,
-		disablePadding: false,
-		label: 'Data de Nascimento',
-	},
-	{
-		id: 'mobilePhone',
-		numeric: true,
-		disablePadding: false,
-		label: 'Telefone Celular',
-	},
-	{
-		id: 'landlinePhone',
-		numeric: true,
-		disablePadding: false,
-		label: 'Telefone Fixo',
-	},
-	{
-		id: 'actions',
-		numeric: false,
-		disablePadding: false,
-		label: '',
-	},
-];

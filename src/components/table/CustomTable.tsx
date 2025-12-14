@@ -18,59 +18,25 @@ import Tooltip from '@mui/material/Tooltip';
 import DeleteIcon from '@mui/icons-material/Delete';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import { visuallyHidden } from '@mui/utils';
-
-function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
-	if (b[orderBy] < a[orderBy]) {
-		return -1;
-	}
-	if (b[orderBy] > a[orderBy]) {
-		return 1;
-	}
-	return 0;
-}
-
-type Order = 'asc' | 'desc';
-
-function getComparator<Key extends keyof any>(
-	order: Order,
-	orderBy: Key
-): (
-	a: { [key in Key]: number | string },
-	b: { [key in Key]: number | string }
-) => number {
-	return order === 'desc'
-		? (a, b) => descendingComparator(a, b, orderBy)
-		: (a, b) => -descendingComparator(a, b, orderBy);
-}
-
-// Since 2020 all major browsers ensure sort stability with Array.prototype.sort().
-// stableSort() brings sort stability to non-modern browsers (notably IE11). If you
-// only support modern browsers you can replace stableSort(exampleArray, exampleComparator)
-// with exampleArray.slice().sort(exampleComparator)
-function stableSort<T>(
-	array: readonly T[],
-	comparator: (a: T, b: T) => number
-) {
-	const stabilizedThis = array.map((el, index) => [el, index] as [T, number]);
-	stabilizedThis.sort((a, b) => {
-		const order = comparator(a[0], b[0]);
-		if (order !== 0) {
-			return order;
-		}
-		return a[1] - b[1];
-	});
-	return stabilizedThis.map(el => el[0]);
-}
+import {
+	Card,
+	CardContent,
+	Pagination,
+	useMediaQuery,
+	useTheme,
+} from '@mui/material';
 
 interface TableItem {
 	id: number;
 }
 
-export interface CustomTableHeadCell {
+export interface CustomTableHeadCell<T> {
 	disablePadding: boolean;
+	disableSort?: boolean;
 	id: string;
 	label: string;
 	numeric: boolean;
+	renderCell?: (row: T) => React.ReactNode;
 }
 
 interface CustomTableHeadProps<T> {
@@ -80,7 +46,7 @@ interface CustomTableHeadProps<T> {
 	order: Order;
 	orderBy: string;
 	rowCount: number;
-	headCells: CustomTableHeadCell[];
+	headCells: CustomTableHeadCell<T>[];
 }
 
 function CustomTableHead<T>(props: CustomTableHeadProps<T>) {
@@ -125,6 +91,7 @@ function CustomTableHead<T>(props: CustomTableHeadProps<T>) {
 							active={orderBy === headCell.id}
 							direction={orderBy === headCell.id ? order : 'asc'}
 							onClick={createSortHandler(headCell.id)}
+							disabled={headCell.disableSort}
 						>
 							{headCell.label}
 							{orderBy === headCell.id ? (
@@ -200,12 +167,16 @@ function CustomTableHead<T>(props: CustomTableHeadProps<T>) {
 // }
 
 export interface CustomTableProps<T> {
-	readonly headCells: CustomTableHeadCell[];
+	readonly headCells: CustomTableHeadCell<T>[];
 	readonly rows: T[];
-	readonly renderRow: (row: T, index: number) => React.ReactNode;
+	readonly renderRow?: (row: T, index: number) => React.ReactNode;
 	readonly paginationInfo: PaginationInfo | null;
-	readonly page: number;
 	readonly rowsPerPage: number;
+
+	readonly order: Order;
+	readonly orderBy: string;
+	onSortChange: (property: string, order: Order) => void;
+
 	handleChangePage: (page: number) => void;
 	handleChangeRowsPerPage: (rowsPerPage: number) => void;
 }
@@ -215,23 +186,28 @@ export function CustomTable<T extends TableItem>({
 	rows,
 	renderRow,
 	paginationInfo,
-	page,
 	rowsPerPage,
 	handleChangePage,
+	onSortChange,
+	order,
+	orderBy,
 	handleChangeRowsPerPage,
 }: CustomTableProps<T>) {
-	const [order, setOrder] = React.useState<Order>('asc');
-	const [orderBy, setOrderBy] = React.useState<string>('calories');
 	const [selected, setSelected] = React.useState<readonly number[]>([]);
 	const [dense, setDense] = React.useState(false);
+
+	const theme = useTheme();
+	const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
 	const handleRequestSort = (
 		event: React.MouseEvent<unknown>,
 		property: string
 	) => {
 		const isAsc = orderBy === property && order === 'asc';
-		setOrder(isAsc ? 'desc' : 'asc');
-		setOrderBy(property);
+		const newOrder: Order = isAsc ? 'desc' : 'asc';
+		console.log('handleRequestSort', property, newOrder);
+
+		onSortChange(property, newOrder);
 	};
 
 	const handleSelectAllClick = (
@@ -267,12 +243,16 @@ export function CustomTable<T extends TableItem>({
 	const isSelected = (id: number) => selected.indexOf(id) !== -1;
 
 	// Avoid a layout jump when reaching the last page with empty rows.
-	const emptyRows = page > 0 ? Math.max(0, rowsPerPage - rows.length) : 0;
+	const emptyRows =
+		(paginationInfo?.page ?? 0) > 0
+			? Math.max(0, rowsPerPage - rows.length)
+			: 0;
 
 	console.log('emptyRows', emptyRows);
-	console.log('page', page);
+
 	console.log('rowsPerPage', rowsPerPage);
 	console.log('rowsLength', rows.length);
+	console.log('pagination info ', paginationInfo);
 
 	// const visibleRows = React.useMemo(
 	// 	() =>
@@ -283,9 +263,70 @@ export function CustomTable<T extends TableItem>({
 	// 	[order, orderBy, page, rowsPerPage]
 	// );
 
+	if (isMobile) {
+		return (
+			<>
+				<Pagination
+					count={paginationInfo?.totalPages ?? 0}
+					page={paginationInfo?.page ?? 0}
+					onChange={(event: unknown, newPage: number) => {
+						handleChangePage(newPage);
+					}}
+				/>
+				{rows.map((row, index) => {
+					return (
+						<Card key={index} sx={{ mb: 2 }}>
+							{headCells.map(headCell => {
+								const cellContent: React.ReactNode =
+									headCell.renderCell
+										? headCell.renderCell(row)
+										: (row[
+												headCell.id as keyof T
+										  ] as React.ReactNode);
+								return (
+									<CardContent key={headCell.id}>
+										<Box>
+											<Typography fontWeight="bold">
+												{headCell.label}
+											</Typography>
+										</Box>
+										<Box>{cellContent}</Box>
+									</CardContent>
+								);
+							})}
+						</Card>
+					);
+				})}
+				<Pagination
+					count={paginationInfo?.totalPages ?? 0}
+					page={paginationInfo?.page ?? 0}
+					onChange={(event: unknown, newPage: number) => {
+						handleChangePage(newPage);
+					}}
+				/>
+			</>
+		);
+	}
+
 	return (
 		<Box sx={{ width: '100%' }}>
-			{/* <CustomTableToolbar numSelected={selected.length} /> */}
+			<TablePagination
+				rowsPerPageOptions={[5, 10, 25]}
+				component="div"
+				count={paginationInfo?.total ?? 0}
+				rowsPerPage={rowsPerPage}
+				page={paginationInfo?.page ? paginationInfo.page - 1 : 0}
+				onPageChange={(event: unknown, newPage: number) => {
+					handleChangePage(newPage);
+				}}
+				showFirstButton
+				showLastButton
+				onRowsPerPageChange={(
+					event: React.ChangeEvent<HTMLInputElement>
+				) => {
+					handleChangeRowsPerPage(parseInt(event.target.value));
+				}}
+			/>
 			<TableContainer>
 				<Table
 					sx={{ minWidth: 750 }}
@@ -304,7 +345,7 @@ export function CustomTable<T extends TableItem>({
 					<TableBody>
 						{rows.map((row, index) => {
 							// const isItemSelected = isSelected(row.id);
-							const rowContent = renderRow(row, index);
+							// const rowContent = renderRow(row, index);
 
 							return (
 								<TableRow
@@ -320,17 +361,19 @@ export function CustomTable<T extends TableItem>({
 
 									sx={{ cursor: 'pointer' }}
 								>
-									{/* <TableCell padding="checkbox">
-										<Checkbox
-											color="primary"
-											checked={isItemSelected}
-											inputProps={{
-												'aria-labelledby': labelId,
-											}}
-										/>
-									</TableCell> */}
-
-									{rowContent}
+									{headCells.map(headCell => {
+										const cellContent: React.ReactNode =
+											headCell.renderCell
+												? headCell.renderCell(row)
+												: (row[
+														headCell.id as keyof T
+												  ] as React.ReactNode);
+										return (
+											<TableCell key={headCell.id}>
+												{cellContent}
+											</TableCell>
+										);
+									})}
 								</TableRow>
 							);
 						})}
@@ -349,9 +392,9 @@ export function CustomTable<T extends TableItem>({
 			<TablePagination
 				rowsPerPageOptions={[5, 10, 25]}
 				component="div"
-				count={paginationInfo?.itemCount ?? 0}
+				count={paginationInfo?.total ?? 0}
 				rowsPerPage={rowsPerPage}
-				page={page}
+				page={paginationInfo?.page ? paginationInfo.page - 1 : 0}
 				onPageChange={(event: unknown, newPage: number) => {
 					handleChangePage(newPage);
 				}}
