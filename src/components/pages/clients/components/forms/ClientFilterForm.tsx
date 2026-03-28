@@ -17,7 +17,7 @@ export const ClientFilterForm: React.FC<ClientFilterFormProps> = ({
 				<Grid item xs={12} sm>
 					<TextField
 						fullWidth
-						label="Nome"
+						label="Nome ou CPF"
 						value={query}
 						onChange={(
 							event: React.ChangeEvent<HTMLInputElement>

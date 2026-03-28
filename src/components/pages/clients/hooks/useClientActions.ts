@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { AxiosError } from 'axios';
 import { ClientFormData } from '../types/types';
+import { isAnyAddressFieldFilled } from '../utils/addressFormHelpers';
 import { axiosInstance } from '@/util/api';
 import { useSnackbar } from '@/hooks/useSnackBar';
 
@@ -21,11 +22,13 @@ export function useClientActions() {
 			setLoading(true);
 			setError(null);
 
+			const { address, ...rest } = formData;
 			const payload = {
-				...formData,
+				...rest,
 				dateOfBirth:
 					formData.dateOfBirth?.format?.('YYYY-MM-DD') ?? null,
 				email: formData.email || null,
+				address: isAnyAddressFieldFilled(address) ? address : null,
 			};
 
 			try {

@@ -29,6 +29,10 @@ import dayjs, { Dayjs } from 'dayjs';
 import { getDatePickerValidationErrorMessage } from '@/util/validation/getDatePickerValidationErrorMessage';
 import { ClientFormData } from '../../types/types';
 import { useClientActions } from '../../hooks/useClientActions';
+import {
+	isAddressCorePartiallyFilled,
+	normalizeCepDigits,
+} from '../../utils/addressFormHelpers';
 import { SnackbarProvider } from '@/hooks/useSnackBar';
 
 interface ClientFormProps {
@@ -49,10 +53,13 @@ export const ClientForm: React.FC<ClientFormProps> = ({
 		setValue,
 		reset,
 		setError,
+		watch,
 	} = useForm<ClientFormData>({
 		mode: 'onBlur',
 	});
 	const { errors } = formState;
+	const watchedAddress = watch('address');
+	const addressGroupActive = isAddressCorePartiallyFilled(watchedAddress);
 
 	const { saveClient } = useClientActions();
 
@@ -88,13 +95,17 @@ export const ClientForm: React.FC<ClientFormProps> = ({
 			notes: client.notes,
 			howTheyFoundUs: client.howTheyFoundUs,
 			address: {
-				zipcode: client.address?.zipcode,
-				streetName: client.address?.streetName,
-				number: String(client.address?.number),
-				district: client.address?.district,
-				city: client.address?.zipcode,
-				state: client.address?.state,
-				addressAdditionalDetails: client.address?.additionalDetails,
+				zipcode: client.address?.zipcode ?? '',
+				streetName: client.address?.streetName ?? '',
+				number:
+					client.address?.number != null
+						? String(client.address.number)
+						: '',
+				district: client.address?.district ?? '',
+				city: client.address?.city ?? '',
+				state: client.address?.state ?? '',
+				addressAdditionalDetails:
+					client.address?.additionalDetails ?? '',
 			},
 		};
 
@@ -108,12 +119,15 @@ export const ClientForm: React.FC<ClientFormProps> = ({
 	}
 
 	async function handleCepBlur() {
+		const cep = normalizeCepDigits(getValues('address.zipcode'));
+		if (cep.length !== 8) {
+			return;
+		}
 		const endereco = await fetchCep(getValues('address.zipcode'));
 		if (!endereco) {
 			return;
 		}
 
-		setValue('address.streetName', endereco.logradouro);
 		setValue('address.streetName', endereco.logradouro);
 		setValue('address.city', endereco.localidade);
 		setValue('address.state', endereco.uf);
@@ -376,7 +390,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({
 							<TextField
 								fullWidth
 								label="CEP"
-								required
+								required={addressGroupActive}
 								error={!!errors.address?.zipcode?.message}
 								helperText={errors.address?.zipcode?.message}
 								InputProps={{
@@ -384,9 +398,22 @@ export const ClientForm: React.FC<ClientFormProps> = ({
 								}}
 								InputLabelProps={{ shrink: shrink }}
 								{...register('address.zipcode', {
-									required: 'CEP é obrigatório',
+									validate: v => {
+										const a = getValues('address');
+										if (!isAddressCorePartiallyFilled(a)) {
+											return true;
+										}
+										const d = normalizeCepDigits(v);
+										if (d.length === 0) {
+											return 'CEP é obrigatório';
+										}
+										if (d.length !== 8) {
+											return 'CEP deve ter 8 dígitos';
+										}
+										return true;
+									},
 									onBlur: () => {
-										handleCepBlur();
+										void handleCepBlur();
 									},
 								})}
 							/>
@@ -395,14 +422,26 @@ export const ClientForm: React.FC<ClientFormProps> = ({
 							<TextField
 								fullWidth
 								label="Logradouro"
-								required
+								required={addressGroupActive}
 								error={!!errors.address?.streetName?.message}
 								helperText={errors.address?.streetName?.message}
 								InputLabelProps={{
 									shrink: addressFound || editMode,
 								}}
 								{...register('address.streetName', {
-									required: 'Logradouro é obrigatório',
+									validate: v => {
+										if (
+											!isAddressCorePartiallyFilled(
+												getValues('address')
+											)
+										) {
+											return true;
+										}
+										return (
+											(v ?? '').trim() !== '' ||
+											'Logradouro é obrigatório'
+										);
+									},
 								})}
 							/>
 						</Grid>
@@ -410,14 +449,26 @@ export const ClientForm: React.FC<ClientFormProps> = ({
 							<TextField
 								fullWidth
 								label="Número"
-								required
+								required={addressGroupActive}
 								error={!!errors.address?.number?.message}
 								helperText={errors.address?.number?.message}
 								InputLabelProps={{
 									shrink: addressFound || editMode,
 								}}
 								{...register('address.number', {
-									required: 'Número é obrigatório',
+									validate: v => {
+										if (
+											!isAddressCorePartiallyFilled(
+												getValues('address')
+											)
+										) {
+											return true;
+										}
+										return (
+											(v ?? '').trim() !== '' ||
+											'Número é obrigatório'
+										);
+									},
 								})}
 							/>
 						</Grid>
@@ -449,14 +500,26 @@ export const ClientForm: React.FC<ClientFormProps> = ({
 							<TextField
 								fullWidth
 								label="Cidade"
-								required
+								required={addressGroupActive}
 								error={!!errors.address?.city?.message}
 								helperText={errors.address?.city?.message}
 								InputLabelProps={{
 									shrink: addressFound || editMode,
 								}}
 								{...register('address.city', {
-									required: 'Cidade é obrigatório',
+									validate: v => {
+										if (
+											!isAddressCorePartiallyFilled(
+												getValues('address')
+											)
+										) {
+											return true;
+										}
+										return (
+											(v ?? '').trim() !== '' ||
+											'Cidade é obrigatória'
+										);
+									},
 								})}
 							/>
 						</Grid>
@@ -464,14 +527,26 @@ export const ClientForm: React.FC<ClientFormProps> = ({
 							<TextField
 								fullWidth
 								label="UF"
-								required
+								required={addressGroupActive}
 								error={!!errors.address?.state?.message}
 								helperText={errors.address?.state?.message}
 								InputLabelProps={{
 									shrink: addressFound || editMode,
 								}}
 								{...register('address.state', {
-									required: 'UF é obrigatório',
+									validate: v => {
+										if (
+											!isAddressCorePartiallyFilled(
+												getValues('address')
+											)
+										) {
+											return true;
+										}
+										return (
+											(v ?? '').trim() !== '' ||
+											'UF é obrigatória'
+										);
+									},
 								})}
 							/>
 						</Grid>

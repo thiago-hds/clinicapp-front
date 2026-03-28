@@ -15,7 +15,7 @@ declare global {
 		landlinePhone: string;
 		mobilePhone: string;
 		howTheyFoundUs: string;
-		address: Address;
+		address?: Address | null;
 		createdAt: string;
 	}
 
