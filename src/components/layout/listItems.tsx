@@ -6,9 +6,11 @@ import ListSubheader from '@mui/material/ListSubheader';
 import FaceIcon from '@mui/icons-material/Face';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import PeopleIcon from '@mui/icons-material/People';
+import PersonIcon from '@mui/icons-material/Person';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import LayersIcon from '@mui/icons-material/Layers';
 import AssignmentIcon from '@mui/icons-material/Assignment';
+import NextLink from 'next/link';
 
 export const mainListItems = (
 	<React.Fragment>
@@ -17,6 +19,8 @@ export const mainListItems = (
 				display: 'flex',
 				justifyContent: 'center',
 			}}
+			component={NextLink}
+			href="/dashboard/clients/index"
 		>
 			<ListItemIcon
 				sx={{
@@ -28,30 +32,24 @@ export const mainListItems = (
 			</ListItemIcon>
 			<ListItemText primary="Clientes" />
 		</ListItemButton>
-		{/* <ListItemButton>
-			<ListItemIcon>
-				<ShoppingCartIcon />
+		<ListItemButton
+			sx={{
+				display: 'flex',
+				justifyContent: 'center',
+			}}
+			component={NextLink}
+			href="/dashboard/users/index"
+		>
+			<ListItemIcon
+				sx={{
+					display: 'flex',
+					justifyContent: 'center',
+				}}
+			>
+				<PersonIcon />
 			</ListItemIcon>
-			<ListItemText primary="Orders" />
+			<ListItemText primary="Usuários" />
 		</ListItemButton>
-		<ListItemButton>
-			<ListItemIcon>
-				<PeopleIcon />
-			</ListItemIcon>
-			<ListItemText primary="Customers" />
-		</ListItemButton>
-		<ListItemButton>
-			<ListItemIcon>
-				<BarChartIcon />
-			</ListItemIcon>
-			<ListItemText primary="Reports" />
-		</ListItemButton>
-		<ListItemButton>
-			<ListItemIcon>
-				<LayersIcon />
-			</ListItemIcon>
-			<ListItemText primary="Integrations" />
-		</ListItemButton> */}
 	</React.Fragment>
 );
 
